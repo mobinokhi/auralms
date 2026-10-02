@@ -22,42 +22,42 @@ export default function HomePage() {
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 h-96 w-[600px] rounded-full bg-gradient-to-tr from-indigo-600/15 via-purple-600/15 to-pink-600/10 blur-[120px] pointer-events-none" />
 
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-3.5 py-1 text-xs font-semibold text-indigo-300 backdrop-blur-md mb-6">
-            <Sparkles className="h-3.5 w-3.5 text-indigo-400" />
-            <span>Hybrid Architecture: Gomo Authoring × SAP Litmos Tracking</span>
+          <div className="inline-flex items-center gap-2 rounded-full border border-lime-500/30 bg-lime-500/10 px-3.5 py-1 text-xs font-semibold text-lime-300 backdrop-blur-md mb-6">
+            <Sparkles className="h-3.5 w-3.5 text-lime-400" />
+            <span>MAS LMS: SAP Litmos Enterprise Experience × Gomo Responsive Authoring</span>
           </div>
 
           <h1 className="text-4xl sm:text-6xl font-black tracking-tight text-white max-w-4xl mx-auto leading-tight">
-            Responsive Course Studio & Enterprise Learning Path
+            Enterprise Training Platform & Visual Course Studio
           </h1>
 
           <p className="mt-6 text-base sm:text-lg text-slate-300 max-w-2xl mx-auto leading-relaxed">
-            Create modular, multi-device corporate training with visual block authoring and real-time viewport simulation, backed by Litmos-grade learner progress tracking and manager compliance analytics.
+            Authentic SAP Litmos admin intelligence with circular donut gauge KPIs, workforce compliance tracking, and Gomo-style visual multi-device responsive course authoring.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
             <Link
-              href={`/author/editor/${sampleCourseId}`}
-              className="flex items-center gap-2 rounded-xl bg-indigo-600 px-6 py-3 text-sm font-bold text-white shadow-xl shadow-indigo-500/25 hover:bg-indigo-500 active:scale-95 transition-all"
+              href="/admin/dashboard"
+              className="flex items-center gap-2 rounded-xl bg-[#61bd1a] px-6 py-3 text-sm font-extrabold text-white shadow-xl shadow-lime-500/25 hover:bg-[#52a215] active:scale-95 transition-all"
             >
-              <Layers className="h-4 w-4" />
-              Launch Gomo Course Editor
+              <BarChart3 className="h-4 w-4" />
+              Open Litmos Admin Dashboard
+            </Link>
+
+            <Link
+              href={`/author/editor/${sampleCourseId}`}
+              className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-900/90 px-6 py-3 text-sm font-bold text-white hover:bg-slate-800 active:scale-95 transition-all shadow-sm"
+            >
+              <Layers className="h-4 w-4 text-indigo-400" />
+              Launch Gomo Course Studio
             </Link>
 
             <Link
               href={`/learn/${sampleCourseId}`}
-              className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-900/80 px-6 py-3 text-sm font-bold text-slate-200 hover:bg-slate-800 hover:text-white active:scale-95 transition-all shadow-sm"
-            >
-              <GraduationCap className="h-4 w-4 text-emerald-400" />
-              Open Litmos Learner Player
-            </Link>
-
-            <Link
-              href="/admin/dashboard"
               className="flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-950/80 px-5 py-3 text-sm font-semibold text-slate-300 hover:bg-slate-900 hover:text-white transition-all"
             >
-              <BarChart3 className="h-4 w-4 text-purple-400" />
-              Manager Analytics
+              <GraduationCap className="h-4 w-4 text-emerald-400" />
+              Learner Player
             </Link>
           </div>
         </div>

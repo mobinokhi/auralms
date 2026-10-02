@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
-  Sparkles, 
   GraduationCap, 
   Layers, 
   BarChart3, 
@@ -46,20 +45,25 @@ export function Navbar() {
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-8">
             <Link href="/" className="flex items-center gap-2.5 group">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-0.5 shadow-lg shadow-indigo-500/20 group-hover:scale-105 transition-transform">
-                <div className="flex h-full w-full items-center justify-center rounded-[7px] bg-slate-950">
-                  <Sparkles className="h-4 w-4 text-indigo-400" />
-                </div>
+              <div className="h-9 w-9 rounded-lg bg-[#61bd1a] flex items-center justify-center shadow-md shadow-lime-500/20 group-hover:scale-105 transition-transform">
+                <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10" fill="#61bd1a" stroke="none" />
+                  <circle cx="8" cy="12" r="2.5" fill="white" stroke="#1c1d1f" strokeWidth="1.5" />
+                  <circle cx="16" cy="12" r="2.5" fill="white" stroke="#1c1d1f" strokeWidth="1.5" />
+                  <path d="M10.5 12h3" stroke="#1c1d1f" strokeWidth="1.5" />
+                  <path d="M8 8a3 3 0 0 1 8 0" stroke="white" strokeWidth="2" strokeLinecap="round" />
+                  <path d="M10 16a2 2 0 0 0 4 0" stroke="#1c1d1f" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
               </div>
               <div className="flex flex-col">
-                <span className="text-base font-bold tracking-tight text-white flex items-center gap-1.5">
-                  Aura<span className="text-indigo-400">LMS</span>
-                  <span className="rounded bg-indigo-500/10 px-1.5 py-0.2 text-[10px] font-semibold text-indigo-300 border border-indigo-500/20">
-                    Gomo × Litmos
+                <span className="text-base font-black tracking-tight text-white flex items-center gap-1.5">
+                  MAS <span className="text-[#61bd1a]">LMS</span>
+                  <span className="rounded bg-lime-500/10 px-1.5 py-0.2 text-[10px] font-bold text-lime-400 border border-lime-500/20">
+                    Litmos × Gomo
                   </span>
                 </span>
                 <span className="text-[11px] text-slate-400 hidden sm:inline">
-                  Enterprise Authoring & Learning Path
+                  Enterprise Authoring & Litmos Learning Engine
                 </span>
               </div>
             </Link>
