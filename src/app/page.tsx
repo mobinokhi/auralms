@@ -43,13 +43,13 @@ export default function DashboardPage() {
         <div>
           <div className="flex items-center gap-2 text-indigo-400 text-xs font-bold uppercase tracking-wider mb-1.5">
             <Sparkles className="h-3.5 w-3.5" />
-            <span>M.A.S Enterprise Intelligence</span>
+            <span>M.A.S LMS • An Modern Learning Management System Tool</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
             Workforce Learning & Compliance Hub
           </h1>
           <p className="mt-1 text-xs sm:text-sm text-slate-400">
-            Monitor real-time training velocity, course retention benchmarks, and regulatory compliance across teams.
+            Developed by M.A.S Cloud Studio • Monitor real-time training velocity, course retention benchmarks, and regulatory compliance.
           </p>
         </div>
 

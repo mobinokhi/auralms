@@ -73,8 +73,12 @@ export function AppShell({ children }: AppShellProps) {
         {/* Brand Header */}
         <div className="p-5 border-b border-slate-800/80">
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/25 group-hover:scale-105 transition-transform flex-shrink-0">
-              <span className="font-black text-white text-xs tracking-tighter">MAS</span>
+            <div className="h-10 w-10 rounded-xl overflow-hidden bg-white p-1 flex items-center justify-center shadow-lg shadow-indigo-500/10 border border-slate-700/60 group-hover:scale-105 transition-transform flex-shrink-0">
+              <img
+                src="/mas-lms-logo.jpg"
+                alt="M.A.S LMS"
+                className="w-full h-full object-contain"
+              />
             </div>
             <div className="flex flex-col min-w-0">
               <span className="text-base font-extrabold text-white tracking-tight leading-tight flex items-center gap-1.5">
@@ -190,8 +194,8 @@ export function AppShell({ children }: AppShellProps) {
       {/* ---------------------------------------------------------------------- */}
       <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-slate-800 bg-[#0E131F] sticky top-0 z-40">
         <Link href="/" className="flex items-center gap-2.5">
-          <div className="h-7 w-7 rounded-lg bg-indigo-600 flex items-center justify-center font-black text-white text-[10px]">
-            MAS
+          <div className="h-8 w-8 rounded-lg overflow-hidden bg-white p-0.5 flex items-center justify-center border border-slate-700">
+            <img src="/mas-lms-logo.jpg" alt="M.A.S LMS Logo" className="w-full h-full object-contain" />
           </div>
           <span className="font-extrabold text-sm text-white">M.A.S LMS</span>
         </Link>

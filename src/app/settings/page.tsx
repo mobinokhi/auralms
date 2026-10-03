@@ -107,9 +107,13 @@ export default function SettingsPage() {
       {/* 1. System Branding & Cloud Status Card (Mandatory Requirement) */}
       <div className="rounded-xl border border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
         <div className="p-6 border-b border-slate-100 dark:border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-lg shadow-sm">
-              M
+          <div className="flex items-center gap-4">
+            <div className="h-16 w-32 rounded-xl bg-white p-1.5 flex items-center justify-center border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex-shrink-0">
+              <img
+                src="/mas-lms-logo.jpg"
+                alt="M.A.S LMS - Developed by M.A.S Cloud Studio"
+                className="w-full h-full object-contain"
+              />
             </div>
             <div>
               <div className="flex items-center gap-2">
@@ -122,6 +126,9 @@ export default function SettingsPage() {
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                 Developed by M.A.S Cloud Studio
+              </p>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                An Modern Learning Management System Tool
               </p>
             </div>
           </div>
