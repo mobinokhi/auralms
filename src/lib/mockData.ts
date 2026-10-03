@@ -10,6 +10,8 @@ import {
   Course,
   Lesson,
   LessonType,
+  ModuleResource,
+  SlideItem,
   ActivityItem,
   MessageThread,
   Guideline,
@@ -199,19 +201,146 @@ export const INITIAL_COURSES: Course[] = [
         courseId: 'crs-firebase',
         title: 'Module 1: Introduction to Google Firebase & Project Setup',
         durationMinutes: 45,
-        type: 'reading',
+        type: 'presentation',
         completed: false,
-        contentMarkdown: `### 1. Introduction to Google Firebase Ecosystem\n\nGoogle Firebase provides managed backend infrastructure for modern enterprise web and mobile applications, eliminating boilerplate server provisioning.\n\n#### Key Firebase Core Services:\n- **Cloud Firestore:** Scalable, flexible NoSQL document database with realtime syncing.\n- **Firebase Authentication:** Turnkey multi-factor and social SSO identity.\n- **Cloud Functions:** Serverless compute that automatically triggers on database writes, auth events, or HTTP webhooks.\n- **Firebase Hosting & Storage:** Global CDN edge asset delivery.\n\n> **Core Rule:** Always configure separate Firebase environments for dev, staging, and production to isolate client data.`
+        contentMarkdown: `### 1. Introduction to Google Firebase Ecosystem\n\nGoogle Firebase provides managed backend infrastructure for modern enterprise web and mobile applications, eliminating boilerplate server provisioning.\n\n#### Key Firebase Core Services:\n- **Cloud Firestore:** Scalable, flexible NoSQL document database with realtime syncing.\n- **Firebase Authentication:** Turnkey multi-factor and social SSO identity.\n- **Cloud Functions:** Serverless compute that automatically triggers on database writes, auth events, or HTTP webhooks.\n- **Firebase Hosting & Storage:** Global CDN edge asset delivery.\n\n> **Core Rule:** Always configure separate Firebase environments for dev, staging, and production to isolate client data.`,
+        resources: [
+          {
+            id: 'res-fb-1',
+            name: 'Google_Firebase_Enterprise_Architecture.pptx',
+            type: 'ppt',
+            size: '4.8 MB',
+            url: '#',
+            uploadedAt: 'Today'
+          },
+          {
+            id: 'res-fb-2',
+            name: 'Cloud_Firestore_Security_Rules_Guide.pdf',
+            type: 'pdf',
+            size: '2.3 MB',
+            url: '#',
+            uploadedAt: 'Today'
+          },
+          {
+            id: 'res-fb-3',
+            name: 'Firebase_Cloud_Topology_Diagram.png',
+            type: 'image',
+            size: '1.4 MB',
+            url: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?q=80&w=1200&auto=format&fit=crop',
+            uploadedAt: 'Yesterday'
+          }
+        ],
+        slides: [
+          {
+            id: 'sld-1',
+            title: 'Welcome to Google Firebase for Enterprise',
+            subtitle: 'Managed Cloud Architecture, Realtime Data & Serverless Services',
+            bulletPoints: [
+              'Unified backend infrastructure hosted on Google Cloud Platform',
+              'Zero server management with automatic global scaling',
+              'Built-in SOC2 Type II, ISO 27001, and HIPAA compliance readiness'
+            ],
+            callout: 'Goal: Deliver robust, secure full-stack features 10x faster than bespoke backends.',
+            imageUrl: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?q=80&w=800&auto=format&fit=crop'
+          },
+          {
+            id: 'sld-2',
+            title: 'Core Firebase Ecosystem Components',
+            subtitle: 'The 4 Pillars of Modern Cloud Applications',
+            bulletPoints: [
+              'Cloud Firestore: Document-oriented NoSQL database with realtime listeners',
+              'Firebase Auth: Drop-in multi-tenant authentication with OAuth and SAML',
+              'Cloud Functions: Serverless event-driven microservices',
+              'Firebase Storage: Scalable asset hosting with fine-grained access control'
+            ],
+            codeSnippet: `// Initialize Firebase Web SDK\nimport { initializeApp } from "firebase/app";\nimport { getFirestore } from "firebase/firestore";\n\nconst app = initializeApp(firebaseConfig);\nexport const db = getFirestore(app);`
+          },
+          {
+            id: 'sld-3',
+            title: 'Production Multi-Environment Topology',
+            subtitle: 'Dev, Staging & Production Project Isolation',
+            bulletPoints: [
+              'Separate GCP projects for dev, staging, and prod prevents data contamination',
+              'Automated deployment via Firebase CLI and GitHub Actions CI/CD',
+              'Never share service account keys or production tokens across branches'
+            ],
+            callout: 'Security Mandate: Always enforce least-privilege IAM permissions on all developers.'
+          },
+          {
+            id: 'sld-4',
+            title: 'Cloud Firestore vs Legacy Databases',
+            subtitle: 'Key Architectural Advantages',
+            bulletPoints: [
+              'Millisecond global latency powered by edge locations',
+              'Offline support: automatic local caching and seamless re-synchronization',
+              'Declarative security rules validated on the edge before execution'
+            ],
+            codeSnippet: `rules_version = '2';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    match /users/{userId} {\n      allow read, write: if request.auth != null && request.auth.uid == userId;\n    }\n  }\n}`
+          },
+          {
+            id: 'sld-5',
+            title: 'Key Takeaways & Action Items',
+            subtitle: 'Preparation for Module 2: Security Rules & Realtime Listeners',
+            bulletPoints: [
+              'Download the attached PowerPoint presentation deck and security whitepaper',
+              'Run `firebase init` within your designated sandbox environment',
+              'Review the course resources tab to inspect the cloud topology schematic'
+            ],
+            callout: 'Next Step: Proceed to Module 2 for live code walkthroughs.'
+          }
+        ]
       },
       {
         id: 'lsn-fb-2',
         courseId: 'crs-firebase',
         title: 'Module 2: Cloud Firestore Database Architecture & Security Rules',
         durationMinutes: 75,
-        type: 'video',
+        type: 'presentation',
         completed: false,
         videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
-        contentMarkdown: `### Cloud Firestore Security Rules\n\nSecurity rules evaluate request tokens against document properties to enforce least privilege access. Never leave rules in test mode in production.`
+        contentMarkdown: `### Cloud Firestore Security Rules\n\nSecurity rules evaluate request tokens against document properties to enforce least privilege access. Never leave rules in test mode in production.`,
+        resources: [
+          {
+            id: 'res-fb-4',
+            name: 'Firestore_Security_Rules_Cookbook.pptx',
+            type: 'ppt',
+            size: '3.6 MB',
+            url: '#',
+            uploadedAt: 'Today'
+          },
+          {
+            id: 'res-fb-5',
+            name: 'Firestore_Rules_Matrix.pdf',
+            type: 'pdf',
+            size: '1.9 MB',
+            url: '#',
+            uploadedAt: 'Today'
+          }
+        ],
+        slides: [
+          {
+            id: 'sld-2-1',
+            title: 'Cloud Firestore Security Fundamentals',
+            subtitle: 'Protecting Enterprise Datastores at Scale',
+            bulletPoints: [
+              'Rules are enforced atomic guards at the database boundary',
+              'Rules can inspect `request.auth` and incoming `request.resource.data`',
+              'Never rely on client-side validation alone for access control'
+            ],
+            callout: 'Rule of thumb: Every collection must have explicit read/write match rules.'
+          },
+          {
+            id: 'sld-2-2',
+            title: 'Writing Declarative Security Assertions',
+            subtitle: 'Role-Based Access Control Pattern',
+            bulletPoints: [
+              'Admin verification using custom auth claims',
+              'Field validation using schema validation helpers',
+              'Preventing unauthorized modification of read-only metadata'
+            ],
+            codeSnippet: `function isAdmin() {\n  return request.auth.token.role == 'Admin';\n}\n\nmatch /teams/{teamId} {\n  allow read: if request.auth != null;\n  allow write: if isAdmin();\n}`
+          }
+        ]
       }
     ]
   },
@@ -936,10 +1065,14 @@ export class MasDataStore {
     }
     try {
       const parsed = JSON.parse(stored);
-      if (Array.isArray(parsed) && !parsed.some((c: Course) => c.title.toLowerCase().includes('firebase'))) {
-        const firebaseCourse = INITIAL_COURSES.find(c => c.title.toLowerCase().includes('firebase'));
-        if (firebaseCourse) {
-          parsed.unshift(firebaseCourse);
+      if (Array.isArray(parsed)) {
+        const fbIdx = parsed.findIndex((c: Course) => c.title.toLowerCase().includes('firebase'));
+        const defaultFb = INITIAL_COURSES.find(c => c.title.toLowerCase().includes('firebase'));
+        if (fbIdx === -1 && defaultFb) {
+          parsed.unshift(defaultFb);
+          localStorage.setItem(STORAGE_PREFIX + 'courses', JSON.stringify(parsed));
+        } else if (fbIdx !== -1 && defaultFb && (!parsed[fbIdx].lessons[0]?.resources || !parsed[fbIdx].lessons[0]?.slides)) {
+          parsed[fbIdx].lessons = defaultFb.lessons;
           localStorage.setItem(STORAGE_PREFIX + 'courses', JSON.stringify(parsed));
         }
       }
@@ -979,6 +1112,8 @@ export class MasDataStore {
       durationMinutes: number;
       contentMarkdown?: string;
       videoUrl?: string;
+      resources?: ModuleResource[];
+      slides?: SlideItem[];
     }
   ): { course: Course; lesson: Lesson } | null {
     const courses = this.getCourses();
@@ -994,7 +1129,9 @@ export class MasDataStore {
       durationMinutes: Number(moduleData.durationMinutes) || 15,
       completed: false,
       contentMarkdown: moduleData.contentMarkdown || '',
-      videoUrl: moduleData.videoUrl || ''
+      videoUrl: moduleData.videoUrl || '',
+      resources: moduleData.resources || [],
+      slides: moduleData.slides || []
     };
 
     const updatedLessons = [...course.lessons, newLesson];
@@ -1013,6 +1150,80 @@ export class MasDataStore {
     }
 
     return { course: updatedCourse, lesson: newLesson };
+  }
+
+  public static addResourceToModule(
+    courseId: string,
+    lessonId: string,
+    resource: Omit<ModuleResource, 'id' | 'uploadedAt'>
+  ): Course | null {
+    const courses = this.getCourses();
+    const courseIndex = courses.findIndex(c => c.id === courseId || c.title.toLowerCase() === courseId.toLowerCase());
+    if (courseIndex === -1) return null;
+
+    const course = courses[courseIndex];
+    const newResource: ModuleResource = {
+      ...resource,
+      id: 'res-' + Date.now(),
+      uploadedAt: 'Today'
+    };
+
+    const updatedLessons = course.lessons.map(l => {
+      if (l.id === lessonId) {
+        return {
+          ...l,
+          resources: [...(l.resources || []), newResource]
+        };
+      }
+      return l;
+    });
+
+    const updatedCourse: Course = {
+      ...course,
+      lessons: updatedLessons,
+      updatedAt: 'Just now'
+    };
+
+    courses[courseIndex] = updatedCourse;
+    if (this.isClient()) {
+      localStorage.setItem(STORAGE_PREFIX + 'courses', JSON.stringify(courses));
+    }
+
+    return updatedCourse;
+  }
+
+  public static deleteResourceFromModule(
+    courseId: string,
+    lessonId: string,
+    resourceId: string
+  ): Course | null {
+    const courses = this.getCourses();
+    const courseIndex = courses.findIndex(c => c.id === courseId || c.title.toLowerCase() === courseId.toLowerCase());
+    if (courseIndex === -1) return null;
+
+    const course = courses[courseIndex];
+    const updatedLessons = course.lessons.map(l => {
+      if (l.id === lessonId) {
+        return {
+          ...l,
+          resources: (l.resources || []).filter(r => r.id !== resourceId)
+        };
+      }
+      return l;
+    });
+
+    const updatedCourse: Course = {
+      ...course,
+      lessons: updatedLessons,
+      updatedAt: 'Just now'
+    };
+
+    courses[courseIndex] = updatedCourse;
+    if (this.isClient()) {
+      localStorage.setItem(STORAGE_PREFIX + 'courses', JSON.stringify(courses));
+    }
+
+    return updatedCourse;
   }
 
   public static updateModuleInCourse(

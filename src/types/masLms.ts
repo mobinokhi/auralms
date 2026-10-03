@@ -31,7 +31,29 @@ export interface Team {
   completionRate: number;
 }
 
-export type LessonType = 'reading' | 'video' | 'quiz';
+export type LessonType = 'reading' | 'video' | 'quiz' | 'presentation';
+
+export type ResourceType = 'ppt' | 'pdf' | 'image' | 'doc';
+
+export interface ModuleResource {
+  id: string;
+  name: string;
+  type: ResourceType;
+  size: string;
+  url: string;
+  uploadedAt?: string;
+}
+
+export interface SlideItem {
+  id: string;
+  title: string;
+  subtitle?: string;
+  bulletPoints?: string[];
+  callout?: string;
+  imageUrl?: string;
+  codeSnippet?: string;
+  notes?: string;
+}
 
 export interface Lesson {
   id: string;
@@ -42,6 +64,8 @@ export interface Lesson {
   completed?: boolean;
   contentMarkdown?: string;
   videoUrl?: string;
+  resources?: ModuleResource[];
+  slides?: SlideItem[];
 }
 
 export type CourseLevel = 'Beginner' | 'Intermediate' | 'Advanced';
