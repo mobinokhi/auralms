@@ -2,39 +2,137 @@ import JSZip from 'jszip';
 import { SlideItem } from '@/types/masLms';
 
 /**
- * Converts a base64 Data URL or string to an ArrayBuffer
+ * Converts File, ArrayBuffer, or Data URL to an ArrayBuffer reliably
  */
-function dataUrlToArrayBuffer(dataUrl: string): ArrayBuffer {
-  const base64Index = dataUrl.indexOf('base64,');
-  const base64 = base64Index !== -1 ? dataUrl.substring(base64Index + 7) : dataUrl;
-  const binaryString = atob(base64);
-  const len = binaryString.length;
-  const bytes = new Uint8Array(len);
-  for (let i = 0; i < len; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
+async function toArrayBuffer(input: File | ArrayBuffer | string): Promise<ArrayBuffer> {
+  if (input instanceof File) {
+    return await input.arrayBuffer();
   }
-  return bytes.buffer;
+  if (input instanceof ArrayBuffer) {
+    return input;
+  }
+  if (typeof input === 'string') {
+    if (input.startsWith('data:')) {
+      const res = await fetch(input);
+      return await res.arrayBuffer();
+    }
+    // Base64 string fallback
+    const cleanBase64 = input.replace(/\s+/g, '');
+    const binary = atob(cleanBase64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes.buffer;
+  }
+  throw new Error('Unsupported input format');
 }
 
 /**
- * Parses a PPTX file and extracts its genuine slides, titles, bullet points, and images.
+ * Decodes XML entities into standard readable text
+ */
+function decodeXml(str: string): string {
+  return str
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'")
+    .trim();
+}
+
+/**
+ * Parses slide XML content using high-performance regex that handles namespaces, tables, group shapes, and text runs
+ */
+function parseSlideXml(xml: string): { title: string; subtitle?: string; bodyParagraphs: string[] } {
+  let title = '';
+  let subtitle: string | undefined = undefined;
+  const bodyParagraphs: string[] = [];
+
+  // 1. Check explicit title shapes: <*:sp> or <*:grpSp> containing <*:ph ... type="title" | "ctrTitle" | idx="0">
+  const titleRegex = /<[a-zA-Z0-9]+:sp\b[^>]*>([\s\S]*?<[a-zA-Z0-9]+:ph\b[^>]*(?:type="(?:title|ctrTitle)"|idx="0")[\s\S]*?)<\/[a-zA-Z0-9]+:sp>/i;
+  const titleMatch = titleRegex.exec(xml);
+  if (titleMatch) {
+    const tRegex = /<[a-zA-Z0-9]+:t\b[^>]*>([^<]*)<\/[a-zA-Z0-9]+:t>/gi;
+    let tMatch;
+    let tText = '';
+    while ((tMatch = tRegex.exec(titleMatch[1])) !== null) {
+      tText += tMatch[1];
+    }
+    title = decodeXml(tText);
+  }
+
+  // 2. Check explicit subtitle shapes: <*:ph ... type="subTitle" | idx="1">
+  const subRegex = /<[a-zA-Z0-9]+:sp\b[^>]*>([\s\S]*?<[a-zA-Z0-9]+:ph\b[^>]*(?:type="subTitle"|idx="1")[\s\S]*?)<\/[a-zA-Z0-9]+:sp>/i;
+  const subMatch = subRegex.exec(xml);
+  if (subMatch) {
+    const tRegex = /<[a-zA-Z0-9]+:t\b[^>]*>([^<]*)<\/[a-zA-Z0-9]+:t>/gi;
+    let tMatch;
+    let sText = '';
+    while ((tMatch = tRegex.exec(subMatch[1])) !== null) {
+      sText += tMatch[1];
+    }
+    subtitle = decodeXml(sText);
+  }
+
+  // 3. Extract table rows if present (<a:tr> ... <a:tc>)
+  const trRegex = /<[a-zA-Z0-9]+:tr\b[^>]*>([\s\S]*?)<\/[a-zA-Z0-9]+:tr>/gi;
+  let trMatch;
+  while ((trMatch = trRegex.exec(xml)) !== null) {
+    const trContent = trMatch[1];
+    const tcRegex = /<[a-zA-Z0-9]+:tc\b[^>]*>([\s\S]*?)<\/[a-zA-Z0-9]+:tc>/gi;
+    let tcMatch;
+    const cells: string[] = [];
+    while ((tcMatch = tcRegex.exec(trContent)) !== null) {
+      const tcContent = tcMatch[1];
+      const tRegex = /<[a-zA-Z0-9]+:t\b[^>]*>([^<]*)<\/[a-zA-Z0-9]+:t>/gi;
+      let cellText = '';
+      let tM;
+      while ((tM = tRegex.exec(tcContent)) !== null) {
+        cellText += tM[1];
+      }
+      cellText = decodeXml(cellText);
+      if (cellText) cells.push(cellText);
+    }
+    if (cells.length > 0) {
+      bodyParagraphs.push(cells.join('  •  '));
+    }
+  }
+
+  // 4. Extract all paragraphs: <a:p>...</a:p>
+  const pRegex = /<[a-zA-Z0-9]+:p\b[^>]*>([\s\S]*?)<\/[a-zA-Z0-9]+:p>/gi;
+  let pMatch;
+  while ((pMatch = pRegex.exec(xml)) !== null) {
+    const pContent = pMatch[1];
+    const tRegex = /<[a-zA-Z0-9]+:t\b[^>]*>([^<]*)<\/[a-zA-Z0-9]+:t>/gi;
+    let tMatch;
+    let paraText = '';
+    while ((tMatch = tRegex.exec(pContent)) !== null) {
+      paraText += tMatch[1];
+    }
+    paraText = decodeXml(paraText);
+    if (paraText.length > 0) {
+      if (paraText !== title && paraText !== subtitle && !bodyParagraphs.includes(paraText)) {
+        bodyParagraphs.push(paraText);
+      }
+    }
+  }
+
+  // 5. Fallback: If no explicit title shape was matched, use the first paragraph as title
+  if (!title && bodyParagraphs.length > 0) {
+    title = bodyParagraphs.shift() || '';
+  }
+
+  return { title, subtitle, bodyParagraphs };
+}
+
+/**
+ * Parses a PPTX file and extracts its genuine slides, titles, bullet points, and embedded images.
  */
 export async function parsePptx(input: File | ArrayBuffer | string): Promise<SlideItem[]> {
   try {
-    let arrayBuffer: ArrayBuffer;
-
-    if (input instanceof File) {
-      arrayBuffer = await input.arrayBuffer();
-    } else if (typeof input === 'string') {
-      if (input.startsWith('data:') || input.length > 200) {
-        arrayBuffer = dataUrlToArrayBuffer(input);
-      } else {
-        return [];
-      }
-    } else {
-      arrayBuffer = input;
-    }
-
+    const arrayBuffer = await toArrayBuffer(input);
     const zip = await JSZip.loadAsync(arrayBuffer);
 
     // Identify all slide files: ppt/slides/slide1.xml, slide2.xml...
@@ -53,10 +151,9 @@ export async function parsePptx(input: File | ArrayBuffer | string): Promise<Sli
       return [];
     }
 
-    // Sort numerically by slide number
+    // Sort numerically by slide number (1, 2, 3, 10...)
     slideFiles.sort((a, b) => a.index - b.index);
 
-    const parser = new DOMParser();
     const slides: SlideItem[] = [];
 
     for (const item of slideFiles) {
@@ -64,9 +161,9 @@ export async function parsePptx(input: File | ArrayBuffer | string): Promise<Sli
       if (!file) continue;
 
       const xmlText = await file.async('text');
-      const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+      const { title, subtitle, bodyParagraphs } = parseSlideXml(xmlText);
 
-      // Check relationships for embedded media images: ppt/slides/_rels/slide{N}.xml.rels
+      // Extract image relationships: ppt/slides/_rels/slide{N}.xml.rels
       let slideImageUrl: string | undefined = undefined;
       const relsPath = `ppt/slides/_rels/slide${item.index}.xml.rels`;
       const relsFile = zip.file(relsPath);
@@ -74,30 +171,24 @@ export async function parsePptx(input: File | ArrayBuffer | string): Promise<Sli
       if (relsFile) {
         try {
           const relsXml = await relsFile.async('text');
-          const relsDoc = parser.parseFromString(relsXml, 'text/xml');
-          const relNodes = relsDoc.getElementsByTagName('Relationship');
+          const relRegex = /<Relationship\b[^>]*Target="([^"]+)"[^>]*Type="[^"]*\/image"/gi;
+          const altRelRegex = /<Relationship\b[^>]*Type="[^"]*\/image"[^>]*Target="([^"]+)"/gi;
 
-          for (let r = 0; r < relNodes.length; r++) {
-            const rel = relNodes[r];
-            const type = rel.getAttribute('Type') || '';
-            const target = rel.getAttribute('Target') || '';
+          let targetMatch = relRegex.exec(relsXml) || altRelRegex.exec(relsXml);
+          if (targetMatch && targetMatch[1]) {
+            const target = targetMatch[1];
+            const mediaPath = target.startsWith('../')
+              ? 'ppt/' + target.replace(/^\.\.\//, '')
+              : target.startsWith('media/')
+              ? 'ppt/' + target
+              : target;
 
-            if (type.includes('/image') && target) {
-              // Resolve relative path: usually ../media/image1.png -> ppt/media/image1.png
-              const mediaPath = target.startsWith('../') 
-                ? 'ppt/' + target.replace(/^\.\.\//, '') 
-                : target.startsWith('media/') 
-                ? 'ppt/' + target 
-                : target;
-
-              const mediaFile = zip.file(mediaPath);
-              if (mediaFile) {
-                const ext = target.split('.').pop()?.toLowerCase() || 'png';
-                const mimeType = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : `image/${ext}`;
-                const base64Data = await mediaFile.async('base64');
-                slideImageUrl = `data:${mimeType};base64,${base64Data}`;
-                break; // Use primary media image for this slide
-              }
+            const mediaFile = zip.file(mediaPath);
+            if (mediaFile) {
+              const ext = target.split('.').pop()?.toLowerCase() || 'png';
+              const mimeType = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : `image/${ext}`;
+              const base64Data = await mediaFile.async('base64');
+              slideImageUrl = `data:${mimeType};base64,${base64Data}`;
             }
           }
         } catch {
@@ -105,57 +196,18 @@ export async function parsePptx(input: File | ArrayBuffer | string): Promise<Sli
         }
       }
 
-      // Extract all text paragraphs (<a:p>)
-      const paragraphNodes = xmlDoc.getElementsByTagName('a:p');
-      const textParagraphs: string[] = [];
-
-      for (let p = 0; p < paragraphNodes.length; p++) {
-        const pNode = paragraphNodes[p];
-        const textNodes = pNode.getElementsByTagName('a:t');
-        let fullParaText = '';
-
-        for (let t = 0; t < textNodes.length; t++) {
-          fullParaText += textNodes[t].textContent || '';
-        }
-
-        fullParaText = fullParaText.trim();
-        if (fullParaText.length > 0) {
-          textParagraphs.push(fullParaText);
-        }
-      }
-
-      // First paragraph is usually the title, or derive sensible title
-      let title = `Slide ${item.index}`;
-      let subtitle: string | undefined = undefined;
-      const bulletPoints: string[] = [];
-
-      if (textParagraphs.length > 0) {
-        title = textParagraphs[0];
-        
-        // If there are multiple paragraphs, check if second is a subtitle
-        let startIndex = 1;
-        if (textParagraphs.length > 1 && textParagraphs[1].length < 80 && !textParagraphs[1].includes('•')) {
-          subtitle = textParagraphs[1];
-          startIndex = 2;
-        }
-
-        for (let i = startIndex; i < textParagraphs.length; i++) {
-          const pt = textParagraphs[i];
-          // Remove leading bullet characters if present
-          const cleanPt = pt.replace(/^[\u2022\u25E6\u2023\u2219-]\s*/, '').trim();
-          if (cleanPt) {
-            bulletPoints.push(cleanPt);
-          }
-        }
-      }
+      // Clean bullet points
+      const cleanBullets = bodyParagraphs
+        .map(p => p.replace(/^[\u2022\u25E6\u2023\u2219-]\s*/, '').trim())
+        .filter(p => p.length > 0);
 
       slides.push({
-        id: `pptx-slide-${item.index}`,
+        id: `pptx-real-slide-${item.index}`,
         title: title || `Slide ${item.index}`,
-        subtitle: subtitle || `Presentation Slide ${item.index}`,
-        bulletPoints: bulletPoints.length > 0 ? bulletPoints : undefined,
+        subtitle: subtitle || `Slide ${item.index} of ${slideFiles.length}`,
+        bulletPoints: cleanBullets.length > 0 ? cleanBullets : undefined,
         imageUrl: slideImageUrl,
-        notes: textParagraphs.length > 5 ? textParagraphs.slice(5).join(' ') : undefined
+        notes: cleanBullets.length > 6 ? cleanBullets.slice(6).join(' ') : undefined
       });
     }
 
