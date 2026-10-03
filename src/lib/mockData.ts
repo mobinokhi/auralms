@@ -1436,4 +1436,54 @@ export class MasDataStore {
       localStorage.setItem(STORAGE_PREFIX + 'active_role', role);
     }
   }
+
+  // --- Admin Profile Details ---
+  public static getAdminProfile(): {
+    name: string;
+    email: string;
+    avatar: string;
+    title: string;
+    team: string;
+    phone: string;
+    timezone: string;
+    securityLevel: string;
+    twoFactorEnabled: boolean;
+  } {
+    const defaults = {
+      name: 'Alex Morgan',
+      email: 'alex.morgan@mascloud.studio',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=250&auto=format&fit=crop',
+      title: 'Chief Security Officer & System Admin',
+      team: 'IT Support & Platform Security',
+      phone: '+1 (555) 019-2834',
+      timezone: 'UTC-5 (Eastern Time)',
+      securityLevel: 'Level 4 (Superadmin)',
+      twoFactorEnabled: true
+    };
+    if (!this.isClient()) return defaults;
+    const stored = localStorage.getItem(STORAGE_PREFIX + 'admin_profile');
+    if (!stored) return defaults;
+    try {
+      return { ...defaults, ...JSON.parse(stored) };
+    } catch {
+      return defaults;
+    }
+  }
+
+  public static updateAdminProfile(updates: Partial<{
+    name: string;
+    email: string;
+    avatar: string;
+    title: string;
+    team: string;
+    phone: string;
+    timezone: string;
+    securityLevel: string;
+    twoFactorEnabled: boolean;
+  }>): void {
+    if (!this.isClient()) return;
+    const current = this.getAdminProfile();
+    const updated = { ...current, ...updates };
+    localStorage.setItem(STORAGE_PREFIX + 'admin_profile', JSON.stringify(updated));
+  }
 }
