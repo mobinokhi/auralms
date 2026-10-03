@@ -3,17 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import { 
   BarChart3, 
-  Download, 
   Search, 
   TrendingUp, 
   CheckCircle2, 
   Clock, 
-  AlertCircle, 
   Award, 
   ShieldCheck, 
-  FileSpreadsheet, 
-  Users,
-  Filter
+  FileSpreadsheet
 } from 'lucide-react';
 import { ReportRosterRow } from '@/types/masLms';
 import { MasDataStore } from '@/lib/mockData';
@@ -48,7 +44,6 @@ export default function ReportsPage() {
   const avgScore = scores.length > 0 ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) : '91.4';
 
   const handleExportCSV = () => {
-    // Generate CSV content
     const headers = ['Learner Name', 'Email', 'Team', 'Course Title', 'Progress (%)', 'Status', 'Assessment Score', 'Last Active'];
     const rows = filteredRoster.map(r => [
       `"${r.learnerName}"`,
@@ -82,70 +77,70 @@ export default function ReportsPage() {
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
       {/* Top Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800/80 pb-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-6">
         <div>
           <div className="flex items-center gap-2 mb-1.5">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/50">
-              <BarChart3 className="w-3 h-3" />
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-50 text-[#7C3AED] border border-purple-200">
+              <BarChart3 className="w-3.5 h-3.5" />
               Executive Analytics
             </span>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+          <h1 className="text-2xl font-bold tracking-tight text-[#1E293B]">
             Compliance & Training Reports
           </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-sm text-[#64748B] mt-1">
             Real-time completion tracking, audit readiness metrics, and assessment pass rates.
           </p>
         </div>
 
         <button
           onClick={handleExportCSV}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-white bg-slate-900 hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 transition shadow-sm hover:shadow active:scale-[0.98]"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#7C3AED] hover:bg-[#6D28D9] transition shadow-xs active:scale-[0.98]"
         >
-          <FileSpreadsheet className="w-4 h-4 text-emerald-500" />
+          <FileSpreadsheet className="w-4 h-4 text-emerald-200" />
           Export CSV Report
         </button>
       </div>
 
       {/* Executive Summary Metrics Strip */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-5 rounded-xl border border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900 shadow-sm">
-          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-2">
-            <span>Overall Completion</span>
-            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+        <div className="p-5 rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex items-center justify-between text-xs text-[#64748B] mb-2">
+            <span className="font-semibold">Overall Completion</span>
+            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
           </div>
-          <p className="text-2xl font-bold text-slate-900 dark:text-white">{overallCompletionRate}%</p>
-          <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 font-medium flex items-center gap-1">
+          <p className="text-2xl font-extrabold text-[#1E293B]">{overallCompletionRate}%</p>
+          <p className="text-xs text-emerald-600 mt-1 font-semibold flex items-center gap-1">
             <TrendingUp className="w-3 h-3" />
             +6.4% from last quarter
           </p>
         </div>
 
-        <div className="p-5 rounded-xl border border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900 shadow-sm">
-          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-2">
-            <span>Avg Assessment Score</span>
-            <Award className="w-4 h-4 text-indigo-500" />
+        <div className="p-5 rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex items-center justify-between text-xs text-[#64748B] mb-2">
+            <span className="font-semibold">Avg Assessment Score</span>
+            <Award className="w-4 h-4 text-[#7C3AED]" />
           </div>
-          <p className="text-2xl font-bold text-slate-900 dark:text-white">{avgScore}%</p>
-          <p className="text-xs text-slate-400 mt-1">Passing benchmark: 80%</p>
+          <p className="text-2xl font-extrabold text-[#1E293B]">{avgScore}%</p>
+          <p className="text-xs text-[#64748B] mt-1">Passing benchmark: 80%</p>
         </div>
 
-        <div className="p-5 rounded-xl border border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900 shadow-sm">
-          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-2">
-            <span>Logged Training Hours</span>
-            <Clock className="w-4 h-4 text-purple-500" />
+        <div className="p-5 rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex items-center justify-between text-xs text-[#64748B] mb-2">
+            <span className="font-semibold">Logged Training Hours</span>
+            <Clock className="w-4 h-4 text-blue-600" />
           </div>
-          <p className="text-2xl font-bold text-slate-900 dark:text-white">1,480 hrs</p>
-          <p className="text-xs text-purple-600 dark:text-purple-400 mt-1 font-medium">99.2% verifiable audit trail</p>
+          <p className="text-2xl font-extrabold text-[#1E293B]">1,480 hrs</p>
+          <p className="text-xs text-blue-600 mt-1 font-semibold">99.2% verifiable audit trail</p>
         </div>
 
-        <div className="p-5 rounded-xl border border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900 shadow-sm">
-          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-2">
-            <span>Audit Readiness</span>
-            <ShieldCheck className="w-4 h-4 text-emerald-500" />
+        <div className="p-5 rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex items-center justify-between text-xs text-[#64748B] mb-2">
+            <span className="font-semibold">Audit Readiness</span>
+            <ShieldCheck className="w-4 h-4 text-emerald-600" />
           </div>
-          <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">96.8%</p>
-          <p className="text-xs text-slate-400 mt-1">SOC 2 & ISO 27001 aligned</p>
+          <p className="text-2xl font-extrabold text-emerald-600">96.8%</p>
+          <p className="text-xs text-[#64748B] mt-1">SOC 2 & ISO 27001 aligned</p>
         </div>
       </div>
 
@@ -158,7 +153,7 @@ export default function ReportsPage() {
             placeholder="Search learner, email, or course..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition"
+            className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-slate-200 bg-[#F1F5F9] text-[#1E293B] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-[#7C3AED] transition"
           />
         </div>
 
@@ -166,7 +161,7 @@ export default function ReportsPage() {
           <select
             value={teamFilter}
             onChange={e => setTeamFilter(e.target.value)}
-            className="text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+            className="text-xs font-medium rounded-lg border border-slate-200 bg-white text-[#1E293B] py-2 px-3 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-[#7C3AED]"
           >
             <option value="All">All Departments</option>
             <option value="Operations">Operations</option>
@@ -177,7 +172,7 @@ export default function ReportsPage() {
           <select
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value)}
-            className="text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+            className="text-xs font-medium rounded-lg border border-slate-200 bg-white text-[#1E293B] py-2 px-3 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-[#7C3AED]"
           >
             <option value="All">All Statuses</option>
             <option value="Completed">Completed</option>
@@ -188,19 +183,19 @@ export default function ReportsPage() {
       </div>
 
       {/* Completion Breakdown Table */}
-      <div className="rounded-xl border border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
-        <div className="p-4 sm:px-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-          <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <div className="p-4 sm:px-6 border-b border-slate-200 flex items-center justify-between">
+          <h3 className="text-sm font-bold text-[#1E293B]">
             Course Completion & Assessment Roster
           </h3>
-          <span className="text-xs text-slate-400">
+          <span className="text-xs text-[#64748B]">
             Showing {filteredRoster.length} records
           </span>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-slate-600 dark:text-slate-300">
-            <thead className="bg-slate-50/75 dark:bg-slate-800/40 text-xs font-semibold text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+          <table className="w-full text-left text-sm text-[#1E293B]">
+            <thead className="bg-[#F8FAFC] text-xs font-semibold text-[#64748B] border-b border-slate-200">
               <tr>
                 <th className="py-3 px-4 sm:px-6">Learner Details</th>
                 <th className="py-3 px-4">Department</th>
@@ -211,10 +206,10 @@ export default function ReportsPage() {
                 <th className="py-3 px-4 hidden md:table-cell text-right">Last Active</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+            <tbody className="divide-y divide-slate-100">
               {filteredRoster.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-400 text-xs">
+                  <td colSpan={7} className="py-12 text-center text-[#64748B] text-xs">
                     No completion records match your filters.
                   </td>
                 </tr>
@@ -223,40 +218,40 @@ export default function ReportsPage() {
                   return (
                     <tr
                       key={row.id}
-                      className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors"
+                      className="hover:bg-[#F8FAFC] transition-colors"
                     >
                       <td className="py-3 px-4 sm:px-6">
-                        <div className="font-semibold text-slate-900 dark:text-white text-xs">
+                        <div className="font-bold text-[#1E293B] text-xs">
                           {row.learnerName}
                         </div>
-                        <div className="text-[11px] text-slate-400 mt-0.5">
+                        <div className="text-[11px] text-[#64748B] mt-0.5">
                           {row.email}
                         </div>
                       </td>
 
-                      <td className="py-3 px-4 text-xs text-slate-600 dark:text-slate-400">
+                      <td className="py-3 px-4 text-xs text-[#64748B] font-medium">
                         {row.team}
                       </td>
 
-                      <td className="py-3 px-4 text-xs font-medium text-slate-800 dark:text-slate-200 max-w-xs truncate">
+                      <td className="py-3 px-4 text-xs font-semibold text-[#1E293B] max-w-xs truncate">
                         {row.courseTitle}
                       </td>
 
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
-                          <div className="w-16 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                          <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                             <div
                               className={`h-full rounded-full ${
                                 row.progress === 100
                                   ? 'bg-emerald-500'
                                   : row.progress > 0
-                                  ? 'bg-indigo-600'
+                                  ? 'bg-[#7C3AED]'
                                   : 'bg-transparent'
                               }`}
                               style={{ width: `${row.progress}%` }}
                             />
                           </div>
-                          <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                          <span className="text-xs font-bold text-[#1E293B]">
                             {row.progress}%
                           </span>
                         </div>
@@ -264,8 +259,8 @@ export default function ReportsPage() {
 
                       <td className="py-3 px-4 text-xs">
                         {row.score !== null ? (
-                          <span className={`font-semibold ${
-                            row.score >= 80 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500'
+                          <span className={`font-bold ${
+                            row.score >= 80 ? 'text-emerald-600' : 'text-rose-500'
                           }`}>
                             {row.score}%
                           </span>
@@ -276,21 +271,21 @@ export default function ReportsPage() {
 
                       <td className="py-3 px-4">
                         {row.status === 'Completed' ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
                             Completed
                           </span>
                         ) : row.status === 'In Progress' ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-purple-50 text-[#7C3AED] border border-purple-200">
                             In Progress
                           </span>
                         ) : (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 text-[#64748B] border border-slate-200">
                             Not Started
                           </span>
                         )}
                       </td>
 
-                      <td className="py-3 px-4 text-xs text-slate-400 hidden md:table-cell text-right">
+                      <td className="py-3 px-4 text-xs text-[#64748B] hidden md:table-cell text-right">
                         {row.lastActive}
                       </td>
                     </tr>
@@ -304,7 +299,7 @@ export default function ReportsPage() {
 
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-2.5 rounded-lg bg-slate-900 text-white text-xs font-medium shadow-xl border border-slate-700 animate-in slide-in-from-bottom-2 duration-200">
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#1E293B] text-white text-xs font-medium shadow-xl border border-slate-700 animate-in slide-in-from-bottom-2 duration-200">
           <CheckCircle2 className="w-4 h-4 text-emerald-400" />
           <span>{toastMessage}</span>
         </div>
