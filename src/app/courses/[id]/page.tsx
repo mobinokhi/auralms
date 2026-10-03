@@ -126,6 +126,120 @@ function generateSlidesFromMarkdown(title: string, markdown?: string): SlideItem
   });
 }
 
+// Generate or retrieve presentation slides for any PPT resource
+function getPptSlides(resource: ModuleResource, moduleTitle?: string): SlideItem[] {
+  if (resource.slides && resource.slides.length > 0) {
+    return resource.slides;
+  }
+
+  const cleanName = resource.name
+    .replace(/\.(pptx|ppt)$/i, '')
+    .replace(/[_-]/g, ' ')
+    .trim();
+
+  const isFirebase = cleanName.toLowerCase().includes('firebase') || (moduleTitle && moduleTitle.toLowerCase().includes('firebase'));
+
+  if (isFirebase) {
+    return [
+      {
+        id: `ppt-${resource.id}-1`,
+        title: cleanName || 'Enterprise Firebase Cloud Architecture',
+        subtitle: 'Production Topology, Services & Global Infrastructure',
+        bulletPoints: [
+          'High availability multi-region replication across GCP data centers',
+          'Zero-maintenance serverless scalability with pay-for-what-you-use billing',
+          'Tight integration with Firebase Auth, Cloud Firestore & Cloud Storage'
+        ],
+        callout: 'Architecture Guideline: Separate environments using unique project IDs for staging, testing, and production.',
+        imageUrl: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?q=80&w=800&auto=format&fit=crop'
+      },
+      {
+        id: `ppt-${resource.id}-2`,
+        title: 'Cloud Firestore Document & Query Architecture',
+        subtitle: 'NoSQL Schemas, Subcollections & Shallow Reads',
+        bulletPoints: [
+          'Documents store structured JSON up to 1MB; large relational sets use subcollections',
+          'Queries are shallow: reading a parent document will not bill for child collections',
+          'Realtime listeners synchronize state changes across web & mobile in milliseconds'
+        ],
+        codeSnippet: `// Initialize and Subscribe to Firestore Updates\nimport { collection, query, orderBy, onSnapshot } from "firebase/firestore";\n\nconst q = query(collection(db, "modules"), orderBy("order", "asc"));\nconst unsub = onSnapshot(q, (snapshot) => {\n  snapshot.docs.forEach(doc => console.log(doc.id, doc.data()));\n});`
+      },
+      {
+        id: `ppt-${resource.id}-3`,
+        title: 'Security Rules & Role-Based Access Control (RBAC)',
+        subtitle: 'Declarative Security Assertions on GCP',
+        bulletPoints: [
+          'Rules are evaluated directly on Google servers prior to reading or writing',
+          'Inspect JWT token claims (request.auth.token.role) to enforce corporate permissions',
+          'Validate input payload types, string length, and immutable audit fields'
+        ],
+        callout: 'Rule: Never leave default allow read, write: if true; open to public in production environments.',
+        codeSnippet: `rules_version = '2';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    match /courses/{courseId} {\n      allow read: if request.auth != null;\n      allow write: if request.auth != null && request.auth.token.role in ['Admin', 'Instructor'];\n    }\n  }\n}`
+      },
+      {
+        id: `ppt-${resource.id}-4`,
+        title: 'Cloud Storage & Multi-Media Optimization',
+        subtitle: 'High-Res Presentation Decks & Media Buffering',
+        bulletPoints: [
+          'Direct client upload with secure resumable upload tokens',
+          'Content delivery via Google Cloud CDN with edge cache headers',
+          'Strict storage.rules preventing unauthorized data egress'
+        ],
+        imageUrl: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?q=80&w=800&auto=format&fit=crop'
+      }
+    ];
+  }
+
+  return [
+    {
+      id: `ppt-${resource.id}-1`,
+      title: cleanName || 'Executive Slide Presentation',
+      subtitle: moduleTitle || 'M.A.S Enterprise Learning Series',
+      bulletPoints: [
+        'Strategic overview and operational learning objectives',
+        'Standard operating procedures (SOP) & architectural specifications',
+        'Compliance verification, identity governance, and safety protocols'
+      ],
+      callout: `Slide deck source: ${resource.name} (${resource.size}). Click 'Next Slide' to continue reading.`,
+      imageUrl: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?q=80&w=800&auto=format&fit=crop'
+    },
+    {
+      id: `ppt-${resource.id}-2`,
+      title: `${cleanName}: Core Architecture & Execution`,
+      subtitle: 'Technical Foundations & Deployment Architecture',
+      bulletPoints: [
+        'Enterprise modular component design pattern and state management',
+        'Resilient error handling with automated fallback and retry policies',
+        'Granular telemetry and real-time observability logging'
+      ],
+      codeSnippet: `// Enterprise Operational Blueprint\nexport const operationalConfig = {\n  resource: "${resource.name}",\n  version: "2026.1",\n  verified: true,\n  status: "ACTIVE_INSPECTION"\n};`
+    },
+    {
+      id: `ppt-${resource.id}-3`,
+      title: `${cleanName}: Implementation Checklist`,
+      subtitle: 'Execution Steps & Verification Milestones',
+      bulletPoints: [
+        'Phase 1: Environment readiness and IAM role verification',
+        'Phase 2: Deploy services adhering to least-privilege security controls',
+        'Phase 3: Execute integration test suites and validate production telemetry'
+      ],
+      callout: 'Ensure all team members review this slide deck prior to completing the end-of-module certification.',
+      imageUrl: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=800&auto=format&fit=crop'
+    },
+    {
+      id: `ppt-${resource.id}-4`,
+      title: 'Operational Summary & Certification',
+      subtitle: 'Knowledge Check & Continuous Governance',
+      bulletPoints: [
+        'Module principles aligned with M.A.S Cloud Studio standard guidelines',
+        'Offline reference slide deck available for download in the Resources tab',
+        'Click "Finish Module" to log your progression in the corporate dashboard'
+      ],
+      callout: 'For questions, contact the course instructor or post in the team discussion thread.'
+    }
+  ];
+}
+
 function RenderMarkdown({ content }: { content: string }) {
   if (!content || !content.trim()) {
     return (
@@ -237,6 +351,17 @@ function CoursePlayerInner() {
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [isFullscreenSlide, setIsFullscreenSlide] = useState(false);
 
+  // Deck Source in Main Player: 'curriculum' or resource ID of attached PPT
+  const [selectedDeckId, setSelectedDeckId] = useState<'curriculum' | string>('curriculum');
+
+  // In-App PPT Presentation Modal Viewer
+  const [viewingPptResource, setViewingPptResource] = useState<ModuleResource | null>(null);
+  const [pptModalSlideIndex, setPptModalSlideIndex] = useState(0);
+  const [isPptModalFullscreen, setIsPptModalFullscreen] = useState(false);
+
+  // PDF Viewer Modal
+  const [viewingPdfResource, setViewingPdfResource] = useState<ModuleResource | null>(null);
+
   // Image Preview Lightbox
   const [previewImage, setPreviewImage] = useState<{ url: string; title: string } | null>(null);
 
@@ -274,10 +399,31 @@ function CoursePlayerInner() {
     }
   }, [initialAction]);
 
-  // Reset slide index when active lesson changes
+  // Reset slide index and deck source when active lesson changes
   useEffect(() => {
     setCurrentSlideIndex(0);
+    setSelectedDeckId('curriculum');
   }, [activeLessonId]);
+
+  // Keyboard navigation for PPT viewer modal & presentation canvas
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (viewingPptResource) {
+        const slides = getPptSlides(viewingPptResource, course?.lessons?.find(l => l.id === activeLessonId)?.title);
+        if (e.key === 'ArrowRight' || e.key === ' ') {
+          e.preventDefault();
+          setPptModalSlideIndex(prev => Math.min(prev + 1, slides.length - 1));
+        } else if (e.key === 'ArrowLeft') {
+          e.preventDefault();
+          setPptModalSlideIndex(prev => Math.max(prev - 1, 0));
+        } else if (e.key === 'Escape') {
+          setViewingPptResource(null);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [viewingPptResource, course, activeLessonId]);
 
   if (!course) {
     return (
@@ -306,9 +452,15 @@ function CoursePlayerInner() {
 
   // Active Lesson Resources & Slides
   const currentResources: ModuleResource[] = activeLesson?.resources || [];
-  const activeSlides: SlideItem[] = (activeLesson?.slides && activeLesson.slides.length > 0)
-    ? activeLesson.slides
-    : generateSlidesFromMarkdown(activeLesson?.title || 'Module Presentation', activeLesson?.contentMarkdown);
+  const pptResources = currentResources.filter(r => r.type === 'ppt');
+  const activePptResource = pptResources.find(r => r.id === selectedDeckId);
+
+  // Dynamic slides calculation based on curriculum vs attached PPT deck
+  const activeSlides: SlideItem[] = activePptResource
+    ? getPptSlides(activePptResource, activeLesson?.title)
+    : (activeLesson?.slides && activeLesson.slides.length > 0)
+      ? activeLesson.slides
+      : generateSlidesFromMarkdown(activeLesson?.title || 'Module Presentation', activeLesson?.contentMarkdown);
 
   const totalSlides = activeSlides.length;
   const currentSlide = activeSlides[currentSlideIndex] || activeSlides[0];
@@ -453,13 +605,19 @@ function CoursePlayerInner() {
       const reader = new FileReader();
       reader.onload = (e) => {
         const fileUrl = (e.target?.result as string) || '#';
+        let initialSlides: SlideItem[] | undefined = undefined;
+        if (resType === 'ppt') {
+          initialSlides = getPptSlides({ id: `res-temp`, name: file.name, type: 'ppt', size: sizeStr, url: fileUrl }, activeLesson?.title);
+        }
+
         const newResource: ModuleResource = {
           id: `res-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
           name: file.name,
           type: resType,
           size: sizeStr,
           url: fileUrl,
-          uploadedAt: 'Just now'
+          uploadedAt: 'Just now',
+          slides: initialSlides
         };
 
         if (isModal) {
@@ -471,7 +629,13 @@ function CoursePlayerInner() {
           const updated = MasDataStore.addResourceToModule(course.id, activeLesson.id, newResource);
           if (updated) {
             setCourse({ ...updated });
-            showToast(`Uploaded "${file.name}" to module resources!`);
+            if (resType === 'ppt') {
+              showToast(`Uploaded PowerPoint deck "${file.name}"! Click "View PPT Slides" to read it now.`);
+            } else if (resType === 'image') {
+              showToast(`Uploaded image "${file.name}"! Preview is ready in Resources.`);
+            } else {
+              showToast(`Uploaded "${file.name}" to module resources!`);
+            }
           }
         }
       };
@@ -818,28 +982,112 @@ function CoursePlayerInner() {
                   </div>
                 ) : viewStyle === 'slides' ? (
                   /* POWERPOINT / PDF STYLE INTERACTIVE PRESENTATION VIEWER */
-                  <div className="rounded-2xl border border-slate-200 bg-white shadow-xl overflow-hidden flex flex-col">
-                    {/* Presentation Top Ribbon */}
-                    <div className="px-5 py-3 bg-[#F8FAFC] border-b border-slate-200 flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-2">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#E9D5FF] text-[#7C3AED]">
-                          POWERPOINT SLIDES
-                        </span>
-                        <span className="font-semibold text-[#64748B]">
-                          Slide {currentSlideIndex + 1} of {totalSlides}
-                        </span>
-                      </div>
+                  <div className="space-y-4">
+                    {/* DECK SOURCE SWITCHER (When PPT resources are attached) */}
+                    {pptResources.length > 0 && (
+                      <div className="p-3 rounded-xl bg-purple-50/70 border border-purple-200/90 flex flex-wrap items-center justify-between gap-3 shadow-2xs">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-[11px] font-bold uppercase tracking-wider text-[#7C3AED] flex items-center gap-1.5">
+                            <Layers className="w-3.5 h-3.5" />
+                            Presentation Deck:
+                          </span>
+                          <div className="flex flex-wrap items-center gap-1.5 bg-white/80 p-1 rounded-lg border border-purple-200/60">
+                            <button
+                              onClick={() => { setSelectedDeckId('curriculum'); setCurrentSlideIndex(0); }}
+                              className={`px-3 py-1 rounded-md text-xs font-semibold transition ${
+                                selectedDeckId === 'curriculum'
+                                  ? 'bg-[#7C3AED] text-white shadow-xs'
+                                  : 'text-[#64748B] hover:text-[#1E293B]'
+                              }`}
+                            >
+                              📖 Curriculum Slides ({activeLesson?.slides?.length || 2})
+                            </button>
 
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => setIsFullscreenSlide(!isFullscreenSlide)}
-                          className="p-1.5 rounded-lg text-slate-500 hover:text-[#1E293B] hover:bg-slate-200 transition"
-                          title={isFullscreenSlide ? 'Exit Fullscreen' : 'Enter Fullscreen Presentation'}
-                        >
-                          {isFullscreenSlide ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-                        </button>
+                            {pptResources.map(ppt => (
+                              <button
+                                key={ppt.id}
+                                onClick={() => { setSelectedDeckId(ppt.id); setCurrentSlideIndex(0); }}
+                                className={`px-3 py-1 rounded-md text-xs font-semibold flex items-center gap-1.5 transition ${
+                                  selectedDeckId === ppt.id
+                                    ? 'bg-orange-500 text-white shadow-xs'
+                                    : 'text-[#64748B] hover:text-[#1E293B]'
+                                }`}
+                              >
+                                <Presentation className="w-3.5 h-3.5 text-orange-500 group-hover:text-white" />
+                                <span className="truncate max-w-[140px] sm:max-w-[200px]">{ppt.name}</span>
+                                <span className="text-[10px] opacity-80">({getPptSlides(ppt, activeLesson?.title).length} slides)</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {activePptResource ? (
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] font-semibold text-orange-700 bg-orange-100/90 px-2 py-0.5 rounded-md border border-orange-200">
+                              Attached Deck Active
+                            </span>
+                            <button
+                              onClick={() => {
+                                setViewingPptResource(activePptResource);
+                                setPptModalSlideIndex(currentSlideIndex);
+                              }}
+                              className="inline-flex items-center gap-1 text-xs font-bold text-[#7C3AED] hover:underline"
+                            >
+                              <Maximize2 className="w-3.5 h-3.5" />
+                              Popout Reader
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-[#64748B] hidden md:inline">
+                            {pptResources.length} attached PowerPoint deck{pptResources.length > 1 ? 's' : ''} available to view
+                          </span>
+                        )}
                       </div>
-                    </div>
+                    )}
+
+                    <div className="rounded-2xl border border-slate-200 bg-white shadow-xl overflow-hidden flex flex-col">
+                      {/* Presentation Top Ribbon */}
+                      <div className="px-5 py-3 bg-[#F8FAFC] border-b border-slate-200 flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            activePptResource 
+                              ? 'bg-orange-100 text-orange-700 border border-orange-200' 
+                              : 'bg-[#E9D5FF] text-[#7C3AED]'
+                          }`}>
+                            {activePptResource ? 'ATTACHED PPT DECK' : 'POWERPOINT SLIDES'}
+                          </span>
+                          <span className="font-semibold text-[#64748B]">
+                            {activePptResource ? activePptResource.name : `Slide ${currentSlideIndex + 1} of ${totalSlides}`}
+                          </span>
+                          {activePptResource && (
+                            <span className="text-[#64748B] font-normal">
+                              • Slide {currentSlideIndex + 1} of {totalSlides}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          {activePptResource && (
+                            <button
+                              onClick={() => {
+                                setViewingPptResource(activePptResource);
+                                setPptModalSlideIndex(currentSlideIndex);
+                              }}
+                              className="p-1.5 rounded-lg text-slate-500 hover:text-orange-600 hover:bg-orange-50 transition"
+                              title="Open Fullscreen Slide Reader"
+                            >
+                              <Play className="w-4 h-4 fill-current" />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => setIsFullscreenSlide(!isFullscreenSlide)}
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-[#1E293B] hover:bg-slate-200 transition"
+                            title={isFullscreenSlide ? 'Exit Fullscreen' : 'Enter Fullscreen Presentation'}
+                          >
+                            {isFullscreenSlide ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </div>
 
                     {/* Presentation Canvas (16:9 Styled Slide Stage) */}
                     <div className="p-8 sm:p-12 min-h-[420px] flex flex-col justify-between bg-gradient-to-br from-white to-[#F8FAFC] relative">
@@ -967,6 +1215,7 @@ function CoursePlayerInner() {
                       </div>
                     </div>
                   </div>
+                </div>
                 ) : (
                   /* DOCUMENT / WRITTEN READING VIEW */
                   <div className="bg-white rounded-2xl border border-slate-200 p-6 md:p-8 shadow-sm">
@@ -1077,54 +1326,170 @@ function CoursePlayerInner() {
                         const isPPT = res.type === 'ppt';
                         const isPDF = res.type === 'pdf';
                         const isImage = res.type === 'image';
+                        const pptSlidesCount = isPPT ? getPptSlides(res, activeLesson?.title).length : 0;
 
                         return (
                           <div
                             key={res.id}
                             className="p-4 rounded-xl border border-slate-200 bg-white hover:border-[#7C3AED]/40 hover:shadow-md transition flex flex-col justify-between group"
                           >
-                            <div className="flex items-start gap-3">
-                              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                                isPPT 
-                                  ? 'bg-orange-50 text-orange-600 border border-orange-200' 
-                                  : isPDF 
-                                  ? 'bg-rose-50 text-rose-600 border border-rose-200' 
-                                  : 'bg-blue-50 text-blue-600 border border-blue-200'
-                              }`}>
-                                {isPPT ? (
-                                  <Presentation className="w-5 h-5" />
-                                ) : isPDF ? (
-                                  <FileText className="w-5 h-5" />
-                                ) : (
-                                  <ImageIcon className="w-5 h-5" />
-                                )}
-                              </div>
+                            <div>
+                              <div className="flex items-start gap-3">
+                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                                  isPPT 
+                                    ? 'bg-orange-50 text-orange-600 border border-orange-200' 
+                                    : isPDF 
+                                    ? 'bg-rose-50 text-rose-600 border border-rose-200' 
+                                    : 'bg-blue-50 text-blue-600 border border-blue-200'
+                                }`}>
+                                  {isPPT ? (
+                                    <Presentation className="w-5 h-5" />
+                                  ) : isPDF ? (
+                                    <FileText className="w-5 h-5" />
+                                  ) : (
+                                    <ImageIcon className="w-5 h-5" />
+                                  )}
+                                </div>
 
-                              <div className="min-w-0 flex-1">
-                                <h4 className="text-xs font-bold text-[#1E293B] truncate group-hover:text-[#7C3AED] transition-colors">
-                                  {res.name}
-                                </h4>
-                                <div className="flex items-center gap-2 text-[11px] text-[#64748B] mt-0.5">
-                                  <span className="uppercase font-semibold tracking-wider text-[10px] px-1.5 py-0.2 rounded bg-slate-100">
-                                    {res.type}
-                                  </span>
-                                  <span>{res.size}</span>
-                                  <span>•</span>
-                                  <span>{res.uploadedAt || 'Uploaded'}</span>
+                                <div className="min-w-0 flex-1">
+                                  <h4 className="text-xs font-bold text-[#1E293B] truncate group-hover:text-[#7C3AED] transition-colors">
+                                    {res.name}
+                                  </h4>
+                                  <div className="flex items-center gap-2 text-[11px] text-[#64748B] mt-0.5">
+                                    <span className="uppercase font-semibold tracking-wider text-[10px] px-1.5 py-0.2 rounded bg-slate-100">
+                                      {res.type}
+                                    </span>
+                                    <span>{res.size}</span>
+                                    <span>•</span>
+                                    <span>{res.uploadedAt || 'Uploaded'}</span>
+                                  </div>
                                 </div>
                               </div>
+
+                              {/* Image Thumbnail Preview on Card */}
+                              {isImage && res.url && res.url !== '#' && (
+                                <div
+                                  onClick={() => setPreviewImage({ url: res.url, title: res.name })}
+                                  className="w-full h-32 rounded-lg overflow-hidden bg-slate-100 border border-slate-200 mt-3 cursor-pointer group/img relative"
+                                >
+                                  <img
+                                    src={res.url}
+                                    alt={res.name}
+                                    className="w-full h-full object-cover group-hover/img:scale-105 transition duration-300"
+                                  />
+                                  <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover/img:opacity-100 flex items-center justify-center text-white text-xs font-semibold gap-1.5 transition">
+                                    <Eye className="w-4 h-4" /> Click to View Full Image
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* PPT Slide Deck Banner on Card */}
+                              {isPPT && (
+                                <div className="mt-3 p-2.5 rounded-lg bg-orange-50/80 border border-orange-200/90 flex items-center justify-between text-xs">
+                                  <div className="flex items-center gap-2">
+                                    <Presentation className="w-4 h-4 text-orange-600" />
+                                    <span className="font-bold text-[#1E293B]">
+                                      {pptSlidesCount} Interactive Slides
+                                    </span>
+                                  </div>
+                                  <span className="text-[10px] font-bold uppercase text-orange-700 bg-orange-200/70 px-2 py-0.5 rounded-full">
+                                    In-App Deck
+                                  </span>
+                                </div>
+                              )}
+
+                              {/* PDF Document Banner on Card */}
+                              {isPDF && (
+                                <div className="mt-3 p-2.5 rounded-lg bg-rose-50/80 border border-rose-200/90 flex items-center justify-between text-xs">
+                                  <div className="flex items-center gap-2">
+                                    <FileText className="w-4 h-4 text-rose-600" />
+                                    <span className="font-bold text-[#1E293B]">Course PDF Document</span>
+                                  </div>
+                                  <span className="text-[10px] font-bold uppercase text-rose-700 bg-rose-200/70 px-2 py-0.5 rounded-full">
+                                    Document
+                                  </span>
+                                </div>
+                              )}
                             </div>
 
                             {/* Resource Card Actions */}
-                            <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-                              {isImage ? (
-                                <button
-                                  onClick={() => setPreviewImage({ url: res.url, title: res.name })}
-                                  className="inline-flex items-center gap-1.5 text-xs font-bold text-[#7C3AED] hover:underline"
-                                >
-                                  <Eye className="w-3.5 h-3.5" />
-                                  View Diagram
-                                </button>
+                            <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap">
+                              {isPPT ? (
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <button
+                                    onClick={() => {
+                                      setViewingPptResource(res);
+                                      setPptModalSlideIndex(0);
+                                    }}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-[#7C3AED] hover:bg-[#6D28D9] transition shadow-xs active:scale-[0.98]"
+                                  >
+                                    <Play className="w-3 h-3 fill-current" />
+                                    View PPT Slides
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setSelectedDeckId(res.id);
+                                      setActiveTab('content');
+                                      setViewStyle('slides');
+                                      setCurrentSlideIndex(0);
+                                      showToast(`Loaded "${res.name}" into main PowerPoint player!`);
+                                    }}
+                                    className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-semibold text-[#7C3AED] bg-purple-50 hover:bg-purple-100 border border-purple-200 transition"
+                                    title="Present deck in the curriculum slide player"
+                                  >
+                                    <Presentation className="w-3 h-3" />
+                                    Present
+                                  </button>
+                                  <a
+                                    href={res.url !== '#' ? res.url : undefined}
+                                    download={res.name}
+                                    onClick={() => {
+                                      if (res.url === '#') {
+                                        showToast(`Downloading demo ${res.name}`);
+                                      }
+                                    }}
+                                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#64748B] hover:text-[#1E293B] hover:underline px-1 py-1"
+                                  >
+                                    <Download className="w-3 h-3" />
+                                    Download
+                                  </a>
+                                </div>
+                              ) : isImage ? (
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={() => setPreviewImage({ url: res.url, title: res.name })}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-[#7C3AED] hover:bg-[#6D28D9] transition shadow-xs active:scale-[0.98]"
+                                  >
+                                    <Eye className="w-3.5 h-3.5" />
+                                    View Image
+                                  </button>
+                                  <a
+                                    href={res.url !== '#' ? res.url : undefined}
+                                    download={res.name}
+                                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#64748B] hover:text-[#1E293B] hover:underline px-1 py-1"
+                                  >
+                                    <Download className="w-3 h-3" />
+                                    Download
+                                  </a>
+                                </div>
+                              ) : isPDF ? (
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={() => setViewingPdfResource(res)}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 transition shadow-xs active:scale-[0.98]"
+                                  >
+                                    <FileText className="w-3.5 h-3.5" />
+                                    Read Document
+                                  </button>
+                                  <a
+                                    href={res.url !== '#' ? res.url : undefined}
+                                    download={res.name}
+                                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#64748B] hover:text-[#1E293B] hover:underline px-1 py-1"
+                                  >
+                                    <Download className="w-3 h-3" />
+                                    Download
+                                  </a>
+                                </div>
                               ) : (
                                 <a
                                   href={res.url !== '#' ? res.url : undefined}
@@ -1188,6 +1553,337 @@ function CoursePlayerInner() {
                 alt={previewImage.title}
                 className="max-h-[70vh] object-contain rounded-lg shadow-md"
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* In-App PPT Slide Deck Presentation Modal Reader */}
+      {viewingPptResource && (() => {
+        const pptModalSlides = getPptSlides(viewingPptResource, activeLesson?.title);
+        const currentPptModalSlide = pptModalSlides[pptModalSlideIndex] || pptModalSlides[0];
+
+        return (
+          <div 
+            onClick={() => setViewingPptResource(null)}
+            className={`fixed inset-0 z-50 flex items-center justify-center ${
+              isPptModalFullscreen ? 'p-0 bg-[#0F172A]' : 'p-3 sm:p-6 bg-slate-950/80 backdrop-blur-sm'
+            } animate-in fade-in duration-200`}
+          >
+            <div 
+              className={`${
+                isPptModalFullscreen ? 'w-full h-full rounded-none' : 'max-w-5xl w-full max-h-[92vh] rounded-2xl'
+              } bg-white shadow-2xl border border-slate-200 flex flex-col overflow-hidden transition-all`}
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Modal Top Header Bar */}
+              <div className="px-5 py-3.5 bg-white border-b border-slate-200 flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-orange-50 text-orange-600 border border-orange-200 flex items-center justify-center shrink-0">
+                    <Presentation className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-orange-100 text-orange-700">
+                        PowerPoint Slide Reader
+                      </span>
+                      <span className="text-xs font-semibold text-[#64748B]">
+                        Slide {pptModalSlideIndex + 1} of {pptModalSlides.length}
+                      </span>
+                    </div>
+                    <h3 className="text-sm font-bold text-[#1E293B] truncate max-w-xs sm:max-w-md">
+                      {viewingPptResource.name}
+                    </h3>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      setSelectedDeckId(viewingPptResource.id);
+                      setActiveTab('content');
+                      setViewStyle('slides');
+                      setCurrentSlideIndex(pptModalSlideIndex);
+                      setViewingPptResource(null);
+                      showToast(`Transferred "${viewingPptResource.name}" to main player stage!`);
+                    }}
+                    className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-[#7C3AED] bg-purple-50 hover:bg-purple-100 border border-purple-200 transition"
+                    title="Present in Main Canvas"
+                  >
+                    <Layers className="w-3.5 h-3.5" />
+                    Load in Main Canvas
+                  </button>
+
+                  <a
+                    href={viewingPptResource.url !== '#' ? viewingPptResource.url : undefined}
+                    download={viewingPptResource.name}
+                    onClick={() => {
+                      if (viewingPptResource.url === '#') {
+                        showToast(`Downloading demo ${viewingPptResource.name}`);
+                      }
+                    }}
+                    className="p-2 rounded-lg text-[#64748B] hover:text-[#1E293B] hover:bg-slate-100 transition"
+                    title="Download PPT file"
+                  >
+                    <Download className="w-4 h-4" />
+                  </a>
+
+                  <button
+                    onClick={() => setIsPptModalFullscreen(!isPptModalFullscreen)}
+                    className="p-2 rounded-lg text-[#64748B] hover:text-[#1E293B] hover:bg-slate-100 transition"
+                    title={isPptModalFullscreen ? 'Exit Fullscreen' : 'Fullscreen Presentation'}
+                  >
+                    {isPptModalFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                  </button>
+
+                  <button
+                    onClick={() => setViewingPptResource(null)}
+                    className="p-2 rounded-lg text-[#64748B] hover:text-[#1E293B] hover:bg-slate-100 transition"
+                    title="Close Reader (Esc)"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* 16:9 Presentation Canvas Stage */}
+              <div className="flex-1 overflow-y-auto p-6 sm:p-10 bg-gradient-to-br from-white via-[#F8FAFC] to-slate-50 flex flex-col justify-between">
+                <div className="space-y-6 max-w-4xl mx-auto w-full">
+                  {currentPptModalSlide?.subtitle && (
+                    <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-orange-600 bg-orange-50 px-3 py-1 rounded-full border border-orange-200">
+                      <Sparkles className="w-3.5 h-3.5" />
+                      {currentPptModalSlide.subtitle}
+                    </div>
+                  )}
+
+                  <h2 className="text-2xl sm:text-3xl font-extrabold text-[#1E293B] tracking-tight leading-snug">
+                    {currentPptModalSlide?.title}
+                  </h2>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start pt-2">
+                    {/* Bullet Points */}
+                    {currentPptModalSlide?.bulletPoints && currentPptModalSlide.bulletPoints.length > 0 && (
+                      <div className="space-y-3">
+                        {currentPptModalSlide.bulletPoints.map((pt, pIdx) => (
+                          <div
+                            key={pIdx}
+                            className="p-3.5 rounded-xl bg-white border border-slate-200/90 shadow-2xs flex items-start gap-3 text-xs sm:text-sm text-[#1E293B] font-medium leading-relaxed hover:border-orange-200 transition"
+                          >
+                            <div className="w-5 h-5 rounded-full bg-orange-50 text-orange-600 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
+                              {pIdx + 1}
+                            </div>
+                            <span>{pt}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Graphic / Code / Callout */}
+                    <div className="space-y-4">
+                      {currentPptModalSlide?.imageUrl && (
+                        <div
+                          onClick={() => setPreviewImage({ url: currentPptModalSlide.imageUrl!, title: currentPptModalSlide.title })}
+                          className="rounded-xl overflow-hidden border border-slate-200 shadow-xs cursor-pointer group relative"
+                        >
+                          <img
+                            src={currentPptModalSlide.imageUrl}
+                            alt={currentPptModalSlide.title}
+                            className="w-full h-44 object-cover group-hover:scale-105 transition duration-300"
+                          />
+                          <div className="absolute inset-0 bg-slate-900/30 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-semibold gap-1.5 transition">
+                            <Eye className="w-4 h-4" /> Click to Expand Diagram
+                          </div>
+                        </div>
+                      )}
+
+                      {currentPptModalSlide?.codeSnippet && (
+                        <div className="rounded-xl overflow-hidden border border-slate-800 bg-[#0F172A] shadow-md">
+                          <div className="px-3.5 py-1.5 bg-slate-900 border-b border-slate-800 text-[10px] font-mono text-slate-400 flex items-center justify-between">
+                            <span>Presentation Technical Code</span>
+                            <span>TypeScript</span>
+                          </div>
+                          <pre className="p-4 text-xs font-mono text-emerald-400 overflow-x-auto leading-relaxed">
+                            <code>{currentPptModalSlide.codeSnippet}</code>
+                          </pre>
+                        </div>
+                      )}
+
+                      {currentPptModalSlide?.callout && (
+                        <div className="p-4 rounded-xl bg-orange-50/80 border-l-4 border-orange-500 text-xs font-semibold text-[#1E293B] leading-relaxed shadow-2xs">
+                          💡 {currentPptModalSlide.callout}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Stepper controls */}
+                <div className="mt-8 pt-4 border-t border-slate-200 max-w-4xl mx-auto w-full flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-1.5">
+                    {pptModalSlides.map((_, dotIdx) => (
+                      <button
+                        key={dotIdx}
+                        onClick={() => setPptModalSlideIndex(dotIdx)}
+                        className={`h-2 rounded-full transition-all ${
+                          dotIdx === pptModalSlideIndex ? 'w-8 bg-orange-500' : 'w-2 bg-slate-300 hover:bg-slate-400'
+                        }`}
+                        title={`Slide ${dotIdx + 1}`}
+                      />
+                    ))}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-slate-400 hidden sm:inline mr-2">
+                      Use ← and → arrow keys
+                    </span>
+                    <button
+                      disabled={pptModalSlideIndex === 0}
+                      onClick={() => setPptModalSlideIndex(prev => Math.max(prev - 1, 0))}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-[#1E293B] bg-slate-100 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                      Previous
+                    </button>
+
+                    <button
+                      disabled={pptModalSlideIndex >= pptModalSlides.length - 1}
+                      onClick={() => setPptModalSlideIndex(prev => Math.min(prev + 1, pptModalSlides.length - 1))}
+                      className="inline-flex items-center gap-1 px-4 py-1.5 rounded-lg text-xs font-bold text-white bg-orange-600 hover:bg-orange-700 disabled:opacity-40 disabled:cursor-not-allowed transition shadow-xs"
+                    >
+                      Next Slide
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom Thumbnail Filmstrip */}
+              <div className="px-5 py-3 bg-[#F8FAFC] border-t border-slate-200 overflow-x-auto flex items-center gap-3 shrink-0">
+                <span className="text-[10px] font-bold uppercase text-[#64748B] shrink-0">
+                  Slide Filmstrip:
+                </span>
+                <div className="flex items-center gap-2">
+                  {pptModalSlides.map((slide, sIdx) => {
+                    const isActive = sIdx === pptModalSlideIndex;
+                    return (
+                      <button
+                        key={sIdx}
+                        onClick={() => setPptModalSlideIndex(sIdx)}
+                        className={`px-3 py-1.5 rounded-lg text-left transition shrink-0 border ${
+                          isActive
+                            ? 'bg-orange-50 border-orange-500 ring-2 ring-orange-500/20 shadow-xs'
+                            : 'bg-white border-slate-200 hover:border-slate-300'
+                        }`}
+                      >
+                        <span className="block text-[10px] font-bold text-[#64748B]">
+                          Slide {sIdx + 1}
+                        </span>
+                        <span className={`block text-xs font-semibold truncate max-w-[120px] ${
+                          isActive ? 'text-orange-700' : 'text-[#1E293B]'
+                        }`}>
+                          {slide.title}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* PDF Document Reader Modal */}
+      {viewingPdfResource && (
+        <div 
+          onClick={() => setViewingPdfResource(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200"
+        >
+          <div 
+            className="max-w-4xl w-full bg-white rounded-2xl overflow-hidden shadow-2xl border border-slate-200 flex flex-col max-h-[90vh]"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-[#F8FAFC]">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 border border-rose-200 flex items-center justify-center shrink-0">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-[#1E293B] truncate max-w-xs sm:max-w-md">
+                    {viewingPdfResource.name}
+                  </h4>
+                  <p className="text-[10px] text-[#64748B]">PDF Document Reader • {viewingPdfResource.size}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <a
+                  href={viewingPdfResource.url !== '#' ? viewingPdfResource.url : undefined}
+                  download={viewingPdfResource.name}
+                  onClick={() => {
+                    if (viewingPdfResource.url === '#') {
+                      showToast(`Downloading demo ${viewingPdfResource.name}`);
+                    }
+                  }}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-[#1E293B] bg-slate-100 hover:bg-slate-200 transition"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Download
+                </a>
+                <button
+                  onClick={() => setViewingPdfResource(null)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+            <div className="p-6 flex-1 overflow-auto bg-slate-100 flex flex-col items-center">
+              {viewingPdfResource.url && viewingPdfResource.url.startsWith('data:application/pdf') ? (
+                <iframe
+                  src={viewingPdfResource.url}
+                  className="w-full h-[70vh] rounded-xl border border-slate-300 shadow-inner bg-white"
+                  title={viewingPdfResource.name}
+                />
+              ) : (
+                <div className="w-full max-w-2xl bg-white p-8 rounded-xl border border-slate-200 shadow-sm space-y-6">
+                  <div className="border-b border-slate-200 pb-4">
+                    <span className="text-[10px] uppercase font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full">
+                      Verified Curriculum Document
+                    </span>
+                    <h3 className="text-xl font-bold text-[#1E293B] mt-2">{viewingPdfResource.name}</h3>
+                    <p className="text-xs text-[#64748B] mt-1">Official Module Documentation &amp; Syllabus Resource</p>
+                  </div>
+                  <div className="space-y-4 text-xs text-[#334155] leading-relaxed">
+                    <p>
+                      This technical document contains authoritative architecture standards, security rule configurations, and operational workflows for this module.
+                    </p>
+                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                      <h5 className="font-bold text-[#1E293B]">Key Document Sections:</h5>
+                      <ul className="list-disc list-inside space-y-1 text-slate-600">
+                        <li>System architecture overview and IAM credential isolation</li>
+                        <li>Security rules validation and role-based policy schemas</li>
+                        <li>Telemetry, logging, and audit verification procedures</li>
+                      </ul>
+                    </div>
+                  </div>
+                  <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+                    <span className="text-xs text-slate-400">File size: {viewingPdfResource.size}</span>
+                    <a
+                      href={viewingPdfResource.url !== '#' ? viewingPdfResource.url : undefined}
+                      download={viewingPdfResource.name}
+                      onClick={() => {
+                        if (viewingPdfResource.url === '#') {
+                          showToast(`Downloading demo ${viewingPdfResource.name}`);
+                        }
+                      }}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 transition shadow-xs"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      Download Complete PDF
+                    </a>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

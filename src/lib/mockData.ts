@@ -211,7 +211,55 @@ export const INITIAL_COURSES: Course[] = [
             type: 'ppt',
             size: '4.8 MB',
             url: '#',
-            uploadedAt: 'Today'
+            uploadedAt: 'Today',
+            slides: [
+              {
+                id: 'ppt-sld-1',
+                title: 'Enterprise Firebase Cloud Architecture',
+                subtitle: 'Google Cloud Platform • Production Grade Topology',
+                bulletPoints: [
+                  'Global multi-region replication for high availability and low latency',
+                  'Zero server operations with managed auto-scaling to zero or peak load',
+                  'Integrated IAM policies with enterprise Single Sign-On (SAML / OAuth)'
+                ],
+                callout: 'Production Rule: Always maintain dedicated project IDs for staging, testing, and production.',
+                imageUrl: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?q=80&w=800&auto=format&fit=crop'
+              },
+              {
+                id: 'ppt-sld-2',
+                title: 'Cloud Firestore Document Modeling',
+                subtitle: 'Collections, Subcollections & Shallow Queries',
+                bulletPoints: [
+                  'Documents cannot exceed 1MB; organize nested datasets with subcollections',
+                  'Queries are shallow: querying a parent collection does not fetch subcollection docs',
+                  'Realtime listeners push delta updates instantly over WebSockets'
+                ],
+                codeSnippet: `// Efficient Paginated Realtime Query\nimport { collection, query, orderBy, limit, onSnapshot } from "firebase/firestore";\n\nconst q = query(collection(db, "audits"), orderBy("timestamp", "desc"), limit(25));\nconst unsubscribe = onSnapshot(q, (snapshot) => {\n  snapshot.docChanges().forEach((change) => console.log(change.type, change.doc.data()));\n});`
+              },
+              {
+                id: 'ppt-sld-3',
+                title: 'Security Rules & Declarative Access Control',
+                subtitle: 'Granular Least-Privilege Role Based Security',
+                bulletPoints: [
+                  'Rules run on Google infrastructure before any database read or write occurs',
+                  'Access request.auth.uid and custom claims to enforce role governance',
+                  'Validate request data schemas with custom functions before committing writes'
+                ],
+                callout: 'Never deploy default allow read, write: if true rules to production environments.',
+                codeSnippet: `rules_version = '2';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    match /organizations/{orgId}/audits/{auditId} {\n      allow read: if request.auth != null && request.auth.token.role in ['Admin', 'Auditor'];\n      allow write: if request.auth != null && request.auth.token.role == 'Admin';\n    }\n  }\n}`
+              },
+              {
+                id: 'ppt-sld-4',
+                title: 'Cloud Functions & Event-Driven Automation',
+                subtitle: 'Serverless Background Processing on GCP',
+                bulletPoints: [
+                  'Trigger async microservices on Firestore document creation, update, or deletion',
+                  'Automate notification dispatches, audit logging, and data sanitization',
+                  'Isolate heavy compute away from client browser thread for snappy UX'
+                ],
+                imageUrl: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?q=80&w=800&auto=format&fit=crop'
+              }
+            ]
           },
           {
             id: 'res-fb-2',

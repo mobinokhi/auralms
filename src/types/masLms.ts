@@ -42,6 +42,7 @@ export interface ModuleResource {
   size: string;
   url: string;
   uploadedAt?: string;
+  slides?: SlideItem[];
 }
 
 export interface SlideItem {
