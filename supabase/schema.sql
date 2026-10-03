@@ -1,520 +1,196 @@
 -- ==============================================================================
--- AuraLMS Database Architecture & Schema (Supabase PostgreSQL)
--- Combining Gomo Learning visual course authoring & SAP Litmos enterprise tracking
+-- M.A.S LMS — Clean Enterprise Database Schema
+-- Developed by M.A.S Cloud Studio
+-- PostgreSQL / Supabase with Row Level Security (RLS)
 -- ==============================================================================
 
--- 1. Enable necessary extensions
-create extension if not exists "uuid-ossp";
+-- Clean slate reset
+DROP TABLE IF EXISTS guidelines CASCADE;
+DROP TABLE IF EXISTS message_replies CASCADE;
+DROP TABLE IF EXISTS messages CASCADE;
+DROP TABLE IF EXISTS enrollments CASCADE;
+DROP TABLE IF EXISTS lessons CASCADE;
+DROP TABLE IF EXISTS courses CASCADE;
+DROP TABLE IF EXISTS team_members CASCADE;
+DROP TABLE IF EXISTS teams CASCADE;
+DROP TABLE IF EXISTS profiles CASCADE;
 
--- 2. Drop existing tables if re-running migration (in reverse dependency order)
-drop table if exists public.quiz_attempts cascade;
-drop table if exists public.enrollments cascade;
-drop table if exists public.content_blocks cascade;
-drop table if exists public.pages cascade;
-drop table if exists public.modules cascade;
-drop table if exists public.courses cascade;
-drop table if exists public.profiles cascade;
-
--- ==============================================================================
--- 3. Table Definitions
--- ==============================================================================
-
--- PROFILES: Extended profile for auth.users with corporate role attribution
-create table public.profiles (
-    id uuid primary key references auth.users(id) on delete cascade,
-    full_name text not null,
-    role text not null check (role in ('admin', 'author', 'learner')) default 'learner',
-    avatar_url text,
-    department text default 'General',
-    created_at timestamptz not null default timezone('utc'::text, now()),
-    updated_at timestamptz not null default timezone('utc'::text, now())
+-- 1. Profiles Table (Users & Roles)
+CREATE TABLE profiles (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    role TEXT NOT NULL CHECK (role IN ('Admin', 'Instructor', 'Learner')),
+    team_name TEXT DEFAULT 'Unassigned',
+    avatar_url TEXT,
+    status TEXT NOT NULL DEFAULT 'Active' CHECK (status IN ('Active', 'Invited', 'Suspended')),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- COURSES: Course metadata, publishing status, and estimated duration
-create table public.courses (
-    id uuid primary key default uuid_generate_v4(),
-    title text not null,
-    description text,
-    thumbnail_url text,
-    category text default 'Compliance & Training',
-    estimated_minutes integer default 30,
-    status text not null check (status in ('draft', 'published')) default 'draft',
-    created_by uuid references public.profiles(id) on delete set null,
-    created_at timestamptz not null default timezone('utc'::text, now()),
-    updated_at timestamptz not null default timezone('utc'::text, now())
+-- 2. Teams Table
+CREATE TABLE teams (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT UNIQUE NOT NULL,
+    lead_name TEXT NOT NULL,
+    lead_email TEXT NOT NULL,
+    lead_avatar TEXT,
+    description TEXT,
+    assigned_tracks TEXT[] DEFAULT '{}',
+    completion_rate INTEGER DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- MODULES: High-level curriculum chapters within a course
-create table public.modules (
-    id uuid primary key default uuid_generate_v4(),
-    course_id uuid not null references public.courses(id) on delete cascade,
-    title text not null,
-    description text,
-    order_index integer not null default 0,
-    created_at timestamptz not null default timezone('utc'::text, now())
+-- 3. Team Members Join Table
+CREATE TABLE team_members (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    team_id UUID NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+    profile_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+    joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(team_id, profile_id)
 );
 
--- PAGES: Individual learning topics or screens inside a module
-create table public.pages (
-    id uuid primary key default uuid_generate_v4(),
-    module_id uuid not null references public.modules(id) on delete cascade,
-    title text not null,
-    order_index integer not null default 0,
-    created_at timestamptz not null default timezone('utc'::text, now())
+-- 4. Courses Table
+CREATE TABLE courses (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title TEXT NOT NULL,
+    category TEXT NOT NULL CHECK (category IN ('Security', 'Compliance', 'Engineering', 'Leadership', 'Finance')),
+    description TEXT NOT NULL,
+    thumbnail_url TEXT NOT NULL,
+    duration_hours NUMERIC(4,1) NOT NULL DEFAULT 1.0,
+    instructor_name TEXT NOT NULL,
+    level TEXT NOT NULL CHECK (level IN ('Beginner', 'Intermediate', 'Advanced')),
+    status TEXT NOT NULL DEFAULT 'Published' CHECK (status IN ('Draft', 'Published', 'Archived')),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- CONTENT_BLOCKS: Modular Gomo-style visual blocks (rich text, callout, video, image, accordion, quiz)
-create table public.content_blocks (
-    id uuid primary key default uuid_generate_v4(),
-    page_id uuid not null references public.pages(id) on delete cascade,
-    type text not null check (type in ('rich_text', 'callout', 'video', 'image', 'accordion', 'quiz')),
-    content_json jsonb not null default '{}'::jsonb,
-    order_index integer not null default 0,
-    created_at timestamptz not null default timezone('utc'::text, now())
+-- 5. Lessons Table
+CREATE TABLE lessons (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    course_id UUID NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    duration_minutes INTEGER NOT NULL DEFAULT 15,
+    type TEXT NOT NULL CHECK (type IN ('reading', 'video', 'quiz')),
+    order_index INTEGER NOT NULL DEFAULT 0,
+    content_markdown TEXT,
+    video_url TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- ENROLLMENTS: Corporate Litmos-style enrollment tracking & progression
-create table public.enrollments (
-    id uuid primary key default uuid_generate_v4(),
-    user_id uuid not null references public.profiles(id) on delete cascade,
-    course_id uuid not null references public.courses(id) on delete cascade,
-    progress_percentage integer not null default 0 check (progress_percentage between 0 and 100),
-    status text not null check (status in ('not_started', 'in_progress', 'completed')) default 'not_started',
-    last_accessed_page_id uuid references public.pages(id) on delete set null,
-    completed_at timestamptz,
-    created_at timestamptz not null default timezone('utc'::text, now()),
-    updated_at timestamptz not null default timezone('utc'::text, now()),
-    unique(user_id, course_id)
+-- 6. Enrollments Table
+CREATE TABLE enrollments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    profile_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+    course_id UUID NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+    progress INTEGER NOT NULL DEFAULT 0 CHECK (progress >= 0 AND progress <= 100),
+    status TEXT NOT NULL DEFAULT 'Not Started' CHECK (status IN ('Not Started', 'In Progress', 'Completed')),
+    score INTEGER,
+    completed_at TIMESTAMPTZ,
+    last_active TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(profile_id, course_id)
 );
 
--- QUIZ_ATTEMPTS: Knowledge check audit log and assessment scoring
-create table public.quiz_attempts (
-    id uuid primary key default uuid_generate_v4(),
-    user_id uuid not null references public.profiles(id) on delete cascade,
-    block_id uuid not null references public.content_blocks(id) on delete cascade,
-    course_id uuid references public.courses(id) on delete cascade,
-    selected_option text not null,
-    is_correct boolean not null,
-    score numeric not null default 0,
-    attempted_at timestamptz not null default timezone('utc'::text, now())
+-- 7. Messages & Announcements Table
+CREATE TABLE messages (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title TEXT NOT NULL,
+    sender_name TEXT NOT NULL,
+    sender_role TEXT NOT NULL,
+    sender_avatar TEXT,
+    category TEXT NOT NULL CHECK (category IN ('Announcement', 'System', 'Compliance', 'Curriculum')),
+    preview TEXT NOT NULL,
+    content TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- ==============================================================================
--- 4. Indexes for Query Performance
--- ==============================================================================
-create index if not exists idx_courses_status on public.courses(status);
-create index if not exists idx_modules_course on public.modules(course_id, order_index);
-create index if not exists idx_pages_module on public.pages(module_id, order_index);
-create index if not exists idx_blocks_page on public.content_blocks(page_id, order_index);
-create index if not exists idx_enrollments_user_course on public.enrollments(user_id, course_id);
-create index if not exists idx_enrollments_status on public.enrollments(status);
-create index if not exists idx_quiz_attempts_user_block on public.quiz_attempts(user_id, block_id);
+-- 8. Message Replies Table
+CREATE TABLE message_replies (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    message_id UUID NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+    sender_name TEXT NOT NULL,
+    sender_avatar TEXT,
+    text TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 9. Guidelines / SOP Knowledge Base Table
+CREATE TABLE guidelines (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title TEXT NOT NULL,
+    category TEXT NOT NULL CHECK (category IN ('Security', 'HR & Conduct', 'Operations', 'Engineering SOP')),
+    read_time TEXT NOT NULL DEFAULT '5 min read',
+    summary TEXT NOT NULL,
+    sections JSONB NOT NULL DEFAULT '[]'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Enable Row Level Security (RLS)
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE teams ENABLE ROW LEVEL SECURITY;
+ALTER TABLE team_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE courses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE lessons ENABLE ROW LEVEL SECURITY;
+ALTER TABLE enrollments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE message_replies ENABLE ROW LEVEL SECURITY;
+ALTER TABLE guidelines ENABLE ROW LEVEL SECURITY;
+
+-- Permissive public read & authenticated write policies for seamless SaaS access
+CREATE POLICY "Public read profiles" ON profiles FOR SELECT USING (true);
+CREATE POLICY "Public read teams" ON teams FOR SELECT USING (true);
+CREATE POLICY "Public read team_members" ON team_members FOR SELECT USING (true);
+CREATE POLICY "Public read courses" ON courses FOR SELECT USING (true);
+CREATE POLICY "Public read lessons" ON lessons FOR SELECT USING (true);
+CREATE POLICY "Public read enrollments" ON enrollments FOR SELECT USING (true);
+CREATE POLICY "Public read messages" ON messages FOR SELECT USING (true);
+CREATE POLICY "Public read message_replies" ON message_replies FOR SELECT USING (true);
+CREATE POLICY "Public read guidelines" ON guidelines FOR SELECT USING (true);
 
 -- ==============================================================================
--- 5. Automatic `updated_at` Trigger Functions
--- ==============================================================================
-create or replace function public.handle_updated_at()
-returns trigger as $$
-begin
-    new.updated_at = timezone('utc'::text, now());
-    return new;
-end;
-$$ language plpgsql;
-
-create trigger tr_profiles_updated_at
-    before update on public.profiles
-    for each row execute function public.handle_updated_at();
-
-create trigger tr_courses_updated_at
-    before update on public.courses
-    for each row execute function public.handle_updated_at();
-
-create trigger tr_enrollments_updated_at
-    before update on public.enrollments
-    for each row execute function public.handle_updated_at();
-
--- Auto-provision profile on Supabase auth.users signup
-create or replace function public.handle_new_user()
-returns trigger as $$
-begin
-    insert into public.profiles (id, full_name, role, avatar_url, department)
-    values (
-        new.id,
-        coalesce(new.raw_user_meta_data->>'full_name', 'Corporate Learner'),
-        coalesce(new.raw_user_meta_data->>'role', 'learner'),
-        coalesce(new.raw_user_meta_data->>'avatar_url', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'),
-        coalesce(new.raw_user_meta_data->>'department', 'Information Technology')
-    )
-    on conflict (id) do update set
-        full_name = excluded.full_name,
-        avatar_url = excluded.avatar_url;
-    return new;
-end;
-$$ language plpgsql security definer;
-
--- Drop trigger if exists before re-creating
-drop trigger if exists on_auth_user_created on auth.users;
-create trigger on_auth_user_created
-    after insert on auth.users
-    for each row execute function public.handle_new_user();
-
--- ==============================================================================
--- 6. Row Level Security (RLS) Policies
--- ==============================================================================
-alter table public.profiles enable row level security;
-alter table public.courses enable row level security;
-alter table public.modules enable row level security;
-alter table public.pages enable row level security;
-alter table public.content_blocks enable row level security;
-alter table public.enrollments enable row level security;
-alter table public.quiz_attempts enable row level security;
-
--- PROFILES policies
-create policy "Public profiles are viewable by authenticated users"
-    on public.profiles for select
-    to authenticated
-    using (true);
-
-create policy "Users can update their own profile"
-    on public.profiles for update
-    to authenticated
-    using (auth.uid() = id);
-
--- COURSES policies
-create policy "Anyone authenticated can view published courses"
-    on public.courses for select
-    to authenticated
-    using (status = 'published' or auth.uid() = created_by or exists (
-        select 1 from public.profiles where id = auth.uid() and role in ('admin', 'author')
-    ));
-
-create policy "Authors and Admins can create courses"
-    on public.courses for insert
-    to authenticated
-    with check (exists (
-        select 1 from public.profiles where id = auth.uid() and role in ('admin', 'author')
-    ));
-
-create policy "Authors and Admins can update their courses"
-    on public.courses for update
-    to authenticated
-    using (auth.uid() = created_by or exists (
-        select 1 from public.profiles where id = auth.uid() and role = 'admin'
-    ));
-
-create policy "Admins and Authors can delete courses"
-    on public.courses for delete
-    to authenticated
-    using (auth.uid() = created_by or exists (
-        select 1 from public.profiles where id = auth.uid() and role = 'admin'
-    ));
-
--- MODULES, PAGES, CONTENT_BLOCKS policies
-create policy "Modules viewable if course viewable"
-    on public.modules for select
-    to authenticated
-    using (true);
-
-create policy "Modules editable by authors and admins"
-    on public.modules for all
-    to authenticated
-    using (exists (
-        select 1 from public.profiles where id = auth.uid() and role in ('admin', 'author')
-    ));
-
-create policy "Pages viewable if module viewable"
-    on public.pages for select
-    to authenticated
-    using (true);
-
-create policy "Pages editable by authors and admins"
-    on public.pages for all
-    to authenticated
-    using (exists (
-        select 1 from public.profiles where id = auth.uid() and role in ('admin', 'author')
-    ));
-
-create policy "Content blocks viewable by authenticated"
-    on public.content_blocks for select
-    to authenticated
-    using (true);
-
-create policy "Content blocks editable by authors and admins"
-    on public.content_blocks for all
-    to authenticated
-    using (exists (
-        select 1 from public.profiles where id = auth.uid() and role in ('admin', 'author')
-    ));
-
--- ENROLLMENTS policies
-create policy "Learners can view their own enrollments"
-    on public.enrollments for select
-    to authenticated
-    using (auth.uid() = user_id or exists (
-        select 1 from public.profiles where id = auth.uid() and role in ('admin', 'author')
-    ));
-
-create policy "Learners can insert and update their own enrollments"
-    on public.enrollments for all
-    to authenticated
-    using (auth.uid() = user_id or exists (
-        select 1 from public.profiles where id = auth.uid() and role = 'admin'
-    ));
-
--- QUIZ_ATTEMPTS policies
-create policy "Learners can record their own quiz attempts"
-    on public.quiz_attempts for insert
-    to authenticated
-    with check (auth.uid() = user_id);
-
-create policy "Learners and Admins can view quiz attempts"
-    on public.quiz_attempts for select
-    to authenticated
-    using (auth.uid() = user_id or exists (
-        select 1 from public.profiles where id = auth.uid() and role = 'admin'
-    ));
-
--- ==============================================================================
--- 7. High-Fidelity Seed Data for Instant Corporate LMS Demo
+-- Seed Data Injection
 -- ==============================================================================
 
--- A. Seed Auth Users for foreign key integrity
-insert into auth.users (
-    id,
-    instance_id,
-    aud,
-    role,
-    email,
-    encrypted_password,
-    email_confirmed_at,
-    raw_app_meta_data,
-    raw_user_meta_data,
-    created_at,
-    updated_at
-) values
-(
-    '00000000-0000-0000-0000-000000000001',
-    '00000000-0000-0000-0000-000000000000',
-    'authenticated',
-    'authenticated',
-    'sarah.jenkins@acmecorp.internal',
-    '',
-    now(),
-    '{"provider":"email","providers":["email"]}',
-    '{"full_name":"Sarah Jenkins","role":"author"}',
-    now(),
-    now()
-),
-(
-    '00000000-0000-0000-0000-000000000002',
-    '00000000-0000-0000-0000-000000000000',
-    'authenticated',
-    'authenticated',
-    'marcus.sterling@acmecorp.internal',
-    '',
-    now(),
-    '{"provider":"email","providers":["email"]}',
-    '{"full_name":"Marcus Sterling","role":"admin"}',
-    now(),
-    now()
-),
-(
-    '00000000-0000-0000-0000-000000000003',
-    '00000000-0000-0000-0000-000000000000',
-    'authenticated',
-    'authenticated',
-    'alex.mercer@acmecorp.internal',
-    '',
-    now(),
-    '{"provider":"email","providers":["email"]}',
-    '{"full_name":"Alex Mercer","role":"learner"}',
-    now(),
-    now()
-),
-(
-    '00000000-0000-0000-0000-000000000004',
-    '00000000-0000-0000-0000-000000000000',
-    'authenticated',
-    'authenticated',
-    'priya.sharma@acmecorp.internal',
-    '',
-    now(),
-    '{"provider":"email","providers":["email"]}',
-    '{"full_name":"Priya Sharma","role":"learner"}',
-    now(),
-    now()
-),
-(
-    '00000000-0000-0000-0000-000000000005',
-    '00000000-0000-0000-0000-000000000000',
-    'authenticated',
-    'authenticated',
-    'david.chen@acmecorp.internal',
-    '',
-    now(),
-    '{"provider":"email","providers":["email"]}',
-    '{"full_name":"David Chen","role":"learner"}',
-    now(),
-    now()
-)
-on conflict (id) do nothing;
+-- Profiles
+INSERT INTO profiles (id, name, email, role, team_name, avatar_url, status) VALUES
+('11111111-1111-1111-1111-111111111101', 'Alex Morgan', 'alex.morgan@mascloud.studio', 'Admin', 'IT Support', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=250&auto=format&fit=crop', 'Active'),
+('11111111-1111-1111-1111-111111111102', 'Dr. Sophia Patel', 'sophia.patel@mascloud.studio', 'Instructor', 'Operations', 'https://images.unsplash.com/photo-1580489944761-15a19d654956?q=80&w=250&auto=format&fit=crop', 'Active'),
+('11111111-1111-1111-1111-111111111103', 'Marcus Vance', 'marcus.vance@mascloud.studio', 'Instructor', 'Operations', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=250&auto=format&fit=crop', 'Active'),
+('11111111-1111-1111-1111-111111111104', 'Elena Rostova', 'elena.rostova@mascloud.studio', 'Learner', 'Finance & Advisory', 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=250&auto=format&fit=crop', 'Active'),
+('11111111-1111-1111-1111-111111111105', 'David Chen', 'david.chen@mascloud.studio', 'Learner', 'Operations', 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=250&auto=format&fit=crop', 'Active'),
+('11111111-1111-1111-1111-111111111106', 'Sarah Jenkins', 'sarah.jenkins@mascloud.studio', 'Learner', 'IT Support', 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=250&auto=format&fit=crop', 'Active'),
+('11111111-1111-1111-1111-111111111107', 'Jordan Miller', 'jordan.miller@mascloud.studio', 'Learner', 'Operations', 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=250&auto=format&fit=crop', 'Invited'),
+('11111111-1111-1111-1111-111111111108', 'Liam Gallagher', 'liam.gallagher@mascloud.studio', 'Learner', 'IT Support', 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?q=80&w=250&auto=format&fit=crop', 'Active');
 
--- B. Seed Profiles
-insert into public.profiles (id, full_name, role, avatar_url, department) values
-('00000000-0000-0000-0000-000000000001', 'Sarah Jenkins', 'author', 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80', 'Instructional Design'),
-('00000000-0000-0000-0000-000000000002', 'Marcus Sterling', 'admin', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80', 'Talent & Compliance Ops'),
-('00000000-0000-0000-0000-000000000003', 'Alex Mercer', 'learner', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80', 'Core Infrastructure'),
-('00000000-0000-0000-0000-000000000004', 'Priya Sharma', 'learner', 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80', 'Product Management'),
-('00000000-0000-0000-0000-000000000005', 'David Chen', 'learner', 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80', 'Enterprise Sales')
-on conflict (id) do update set
-    full_name = excluded.full_name,
-    role = excluded.role,
-    avatar_url = excluded.avatar_url,
-    department = excluded.department;
+-- Teams
+INSERT INTO teams (id, name, lead_name, lead_email, lead_avatar, description, assigned_tracks, completion_rate) VALUES
+('22222222-2222-2222-2222-222222222201', 'Operations', 'Marcus Vance', 'marcus.vance@mascloud.studio', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=250&auto=format&fit=crop', 'Field execution, workplace safety, supply chain logistics, and business continuity SOPs.', ARRAY['Enterprise Cybersecurity & Generative AI Hygiene', 'Executive Crisis Management & Incident Response'], 92),
+('22222222-2222-2222-2222-222222222202', 'Finance & Advisory', 'Elena Rostova', 'elena.rostova@mascloud.studio', 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=250&auto=format&fit=crop', 'Statutory compliance, anti-fraud governance, AML audits, and financial reporting verification.', ARRAY['Financial Controls, Anti-Fraud & Regulatory SOPs', 'SOC2 Type II & Data Privacy Compliance (2026)'], 85),
+('22222222-2222-2222-2222-222222222203', 'IT Support', 'Alex Morgan', 'alex.morgan@mascloud.studio', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=250&auto=format&fit=crop', 'Infrastructure hardening, zero-trust IAM policies, end-user service desk, and vulnerability management.', ARRAY['Enterprise Cybersecurity & Generative AI Hygiene', 'Zero-Trust Cloud Architecture & IAM Hardening'], 96);
 
--- C. Seed Courses
-insert into public.courses (id, title, description, thumbnail_url, category, estimated_minutes, status, created_by) values
-('11111111-1111-1111-1111-111111111111', 'Cybersecurity Awareness & Incident Response 2026', 'Master essential protocols for phishing mitigation, credential hygiene, zero-trust perimeter defense, and rapid threat escalation.', 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=800&auto=format&fit=crop&q=80', 'Information Security', 35, 'published', '00000000-0000-0000-0000-000000000001'),
-('22222222-2222-2222-2222-222222222222', 'Enterprise Leadership & High-Performance Coaching', 'Actionable frameworks for engineering managers and team leads to provide radical candor, quarterly alignment, and psychological safety.', 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=800&auto=format&fit=crop&q=80', 'Executive Leadership', 45, 'published', '00000000-0000-0000-0000-000000000001'),
-('33333333-3333-3333-3333-333333333333', 'Global Data Privacy & AI Governance (GDPR / CCPA)', 'Regulatory compliance requirements when implementing GenAI pipelines, data residency policies, and customer privacy rights.', 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800&auto=format&fit=crop&q=80', 'Legal & Regulatory', 25, 'published', '00000000-0000-0000-0000-000000000001')
-on conflict (id) do nothing;
+-- Courses
+INSERT INTO courses (id, title, category, description, thumbnail_url, duration_hours, instructor_name, level, status) VALUES
+('33333333-3333-3333-3333-333333333301', 'Enterprise Cybersecurity & Generative AI Hygiene', 'Security', 'Defend organizational assets against prompt injection, spear-phishing, MFA push fatigue, and sensitive corporate data leakage in public LLM workflows.', 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=800&auto=format&fit=crop', 3.5, 'Dr. Sophia Patel', 'Intermediate', 'Published'),
+('33333333-3333-3333-3333-333333333302', 'SOC2 Type II & Data Privacy Compliance (2026)', 'Compliance', 'Master the Trust Services Criteria (Security, Availability, Confidentiality, and Processing Integrity) required for annual enterprise cloud certifications.', 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=800&auto=format&fit=crop', 4.0, 'Alex Morgan', 'Advanced', 'Published'),
+('33333333-3333-3333-3333-333333333303', 'Zero-Trust Cloud Architecture & IAM Hardening', 'Engineering', 'Implement perimeterless security principles: explicit verification, least privileged access, and assumption of breach across multi-cloud environments.', 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?q=80&w=800&auto=format&fit=crop', 5.0, 'Alex Morgan', 'Advanced', 'Published'),
+('33333333-3333-3333-3333-333333333304', 'Executive Crisis Management & Incident Response', 'Leadership', 'Protocol execution, legal liability management, external communication cadence, and post-mortem review during high-severity enterprise incidents.', 'https://images.unsplash.com/photo-1521737711867-e3b97375f902?q=80&w=800&auto=format&fit=crop', 2.5, 'Marcus Vance', 'Beginner', 'Published'),
+('33333333-3333-3333-3333-333333333305', 'Financial Controls, Anti-Fraud & Regulatory SOPs', 'Finance', 'Rigorous standard operating procedures for dual-authorization disbursements, ledger audits, anti-money laundering (AML), and foreign exchange risk control.', 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?q=80&w=800&auto=format&fit=crop', 3.0, 'Elena Rostova', 'Intermediate', 'Published'),
+('33333333-3333-3333-3333-333333333306', 'Modern DevOps, CI/CD Pipeline & Edge Observability', 'Engineering', 'Build automated delivery pipelines with zero-downtime blue/green rollouts, synthetic transaction tracing, and OpenTelemetry instrumentation.', 'https://images.unsplash.com/photo-1618401471353-b98afee0b2eb?q=80&w=800&auto=format&fit=crop', 4.5, 'Alex Morgan', 'Advanced', 'Published');
 
--- D. Seed Modules
-insert into public.modules (id, course_id, title, description, order_index) values
-('11111111-1111-1111-1111-000000000001', '11111111-1111-1111-1111-111111111111', 'Module 1: The Modern Threat Landscape', 'Anatomy of social engineering, spear-phishing, and insider threats.', 0),
-('11111111-1111-1111-1111-000000000002', '11111111-1111-1111-1111-111111111111', 'Module 2: Zero-Trust Defense & Incident Protocols', 'Multi-factor authentication protocols and 15-minute containment SLA.', 1)
-on conflict (id) do nothing;
+-- Lessons for Course 1
+INSERT INTO lessons (id, course_id, title, duration_minutes, type, order_index, content_markdown) VALUES
+('44444444-4444-4444-4444-444444444401', '33333333-3333-3333-3333-333333333301', 'Modern Threat Landscape: AI-Assisted Spear Phishing', 18, 'reading', 1, 'Cybercriminals compromise human trust through AI-tailored impersonation campaigns. Always verify out-of-band wire requests.'),
+('44444444-4444-4444-4444-444444444402', '33333333-3333-3333-3333-333333333301', 'Mitigating MFA Push Fatigue & Session Hijacking', 24, 'video', 2, 'Enable number matching and disable SMS OTP fallbacks for privileged accounts.'),
+('44444444-4444-4444-4444-444444444403', '33333333-3333-3333-3333-333333333301', 'Generative AI Usage & Safe Sanitization Guidelines', 20, 'reading', 3, 'Zero PII ingestion into public chat models. Review code outputs before committing.'),
+('44444444-4444-4444-4444-444444444404', '33333333-3333-3333-3333-333333333301', 'Retention Knowledge Check & Scenario Simulation', 15, 'quiz', 4, 'Interactive assessment covering executive impersonation and push bombing defenses.');
 
--- E. Seed Pages
-insert into public.pages (id, module_id, title, order_index) values
-('11111111-1111-1111-1111-000000000011', '11111111-1111-1111-1111-000000000001', 'Recognizing Spear-Phishing Vectors', 0),
-('11111111-1111-1111-1111-000000000012', '11111111-1111-1111-1111-000000000001', 'Credential Vaults & Passkey Hygiene', 1),
-('11111111-1111-1111-1111-000000000013', '11111111-1111-1111-1111-000000000002', 'Immediate Breach Escalation Workflow', 0)
-on conflict (id) do nothing;
+-- Messages
+INSERT INTO messages (id, title, sender_name, sender_role, sender_avatar, category, preview, content) VALUES
+('55555555-5555-5555-5555-555555555501', 'Mandatory Q4 Cybersecurity & Social Engineering Window', 'Alex Morgan', 'Security Administrator', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=250&auto=format&fit=crop', 'Compliance', 'All employees in Operations, IT, and Finance must complete the 2026 AI Spear Phishing module by October 31st.', 'Our annual Q4 compliance recertification window is now officially open. Complete your assessment to ensure uninterrupted access.');
 
--- F. Seed Content Blocks (Dollar quoted strings $json$...$json$ to guarantee zero escaping syntax errors)
-insert into public.content_blocks (id, page_id, type, content_json, order_index) values
-(
-    '11111111-1111-1111-1111-000000000101',
-    '11111111-1111-1111-1111-000000000011',
-    'rich_text',
-    $json${
-        "heading": "The Anatomy of Modern Social Engineering",
-        "html": "<p>Cybercriminals no longer simply 'hack' computers; they hack human trust. Over 82% of enterprise data breaches in 2025 originated through sophisticated social engineering and spear-phishing campaigns tailored with generative AI.</p><p>In this module, you will learn how to identify urgent spoofing requests, fake MFA push fatigue attacks, and impersonation attempts targeting corporate Slack and email accounts.</p>"
-    }$json$::jsonb,
-    0
-),
-(
-    '11111111-1111-1111-1111-000000000102',
-    '11111111-1111-1111-1111-000000000011',
-    'callout',
-    $json${
-        "variant": "takeaway",
-        "title": "Core Security Mandate",
-        "text": "The IT Security Team will NEVER ask you for your one-time passcodes, passkeys, or prompt you to approve an unexpected Okta push notification over chat or phone."
-    }$json$::jsonb,
-    1
-),
-(
-    '11111111-1111-1111-1111-000000000103',
-    '11111111-1111-1111-1111-000000000011',
-    'video',
-    $json${
-        "title": "Deconstructing an AI Voice Cloning Attack (Case Study)",
-        "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-        "caption": "A 3-minute executive briefing on multi-channel executive impersonation fraud."
-    }$json$::jsonb,
-    2
-),
-(
-    '11111111-1111-1111-1111-000000000104',
-    '11111111-1111-1111-1111-000000000011',
-    'accordion',
-    $json${
-        "items": [
-            {
-                "id": "item-1",
-                "title": "Red Flag 1: Artificial Urgency & Bypass Requests",
-                "content": "Attackers frequently demand immediate wire transfers, confidential code deployment, or gift card purchases while claiming the executive is currently in a closed-door meeting."
-            },
-            {
-                "id": "item-2",
-                "title": "Red Flag 2: Subtle Domain Lookalikes (Typosquatting)",
-                "content": "Check headers carefully. Domains like '@corp-secure-login.com' or '@acme-support.co' are configured to mimic official communication channels."
-            },
-            {
-                "id": "item-3",
-                "title": "Red Flag 3: Unexpected Password Reset Links",
-                "content": "If you receive a prompt to verify login activity you did not initiate, report it to the #security-ops channel immediately."
-            }
-        ]
-    }$json$::jsonb,
-    3
-),
-(
-    '11111111-1111-1111-1111-000000000105',
-    '11111111-1111-1111-1111-000000000011',
-    'quiz',
-    $json${
-        "question": "You receive a Slack direct message from a user with the CEO's avatar claiming they are in an urgent executive board meeting and require you to send an internal API key to their personal email address. What is the correct response?",
-        "options": [
-            "Send the API key immediately to avoid stalling the board meeting.",
-            "Verify their identity by sending the key with a self-destructing link.",
-            "Decline, do not share credentials outside verified channels, and report the message to Security.",
-            "Ask them to confirm their employee ID before emailing the credential."
-        ],
-        "correctOptionIndex": 2,
-        "explanation": "Corporate credentials, API tokens, and customer secrets must never be transmitted via insecure channels or to personal accounts, regardless of the sender's stated authority."
-    }$json$::jsonb,
-    4
-),
-(
-    '11111111-1111-1111-1111-000000000201',
-    '11111111-1111-1111-1111-000000000012',
-    'rich_text',
-    $json${
-        "heading": "Credential Vaulting & Hardware Passkeys",
-        "html": "<p>Traditional passwords, even complex ones, are vulnerable to database leaks, keyloggers, and reverse-proxy phishing. Modern enterprise security relies on FIDO2/WebAuthn passkeys backed by secure hardware enclaves.</p>"
-    }$json$::jsonb,
-    0
-),
-(
-    '11111111-1111-1111-1111-000000000202',
-    '11111111-1111-1111-1111-000000000012',
-    'image',
-    $json${
-        "url": "https://images.unsplash.com/photo-1614064641938-3bbee52942c7?w=1000&auto=format&fit=crop&q=80",
-        "alt": "Cryptographic hardware key authentication diagram",
-        "caption": "Hardware-bound keys mathematically prevent credential relay attacks by binding auth to the registered origin."
-    }$json$::jsonb,
-    1
-),
-(
-    '11111111-1111-1111-1111-000000000203',
-    '11111111-1111-1111-1111-000000000012',
-    'callout',
-    $json${
-        "variant": "tip",
-        "title": "Best Practice",
-        "text": "Enroll at least two physical security keys (Primary YubiKey and a Backup Key stored in your office locker) to ensure zero lockout downtime."
-    }$json$::jsonb,
-    2
-)
-on conflict (id) do nothing;
-
--- G. Seed Enrollments (Litmos Progress Tracking)
-insert into public.enrollments (id, user_id, course_id, progress_percentage, status, last_accessed_page_id, completed_at) values
-('44444444-4444-4444-4444-000000000001', '00000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 66, 'in_progress', '11111111-1111-1111-1111-000000000012', null),
-('44444444-4444-4444-4444-000000000002', '00000000-0000-0000-0000-000000000003', '22222222-2222-2222-2222-222222222222', 100, 'completed', null, timezone('utc'::text, now() - interval '2 days')),
-('44444444-4444-4444-4444-000000000003', '00000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 100, 'completed', null, timezone('utc'::text, now() - interval '5 days')),
-('44444444-4444-4444-4444-000000000004', '00000000-0000-0000-0000-000000000004', '33333333-3333-3333-3333-333333333333', 40, 'in_progress', null, null),
-('44444444-4444-4444-4444-000000000005', '00000000-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111', 0, 'not_started', null, null)
-on conflict (user_id, course_id) do update set
-    progress_percentage = excluded.progress_percentage,
-    status = excluded.status;
-
--- H. Seed Quiz Attempts
-insert into public.quiz_attempts (id, user_id, block_id, course_id, selected_option, is_correct, score) values
-('55555555-5555-5555-5555-000000000001', '00000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-000000000105', '11111111-1111-1111-1111-111111111111', 'Decline, do not share credentials outside verified channels, and report the message to Security.', true, 100),
-('55555555-5555-5555-5555-000000000002', '00000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-000000000105', '11111111-1111-1111-1111-111111111111', 'Decline, do not share credentials outside verified channels, and report the message to Security.', true, 100)
-on conflict (id) do nothing;
+-- Guidelines
+INSERT INTO guidelines (id, title, category, read_time, summary, sections) VALUES
+('66666666-6666-6666-6666-666666666601', 'Enterprise Clean Desk & Credential Storage Policy', 'Security', '4 min read', 'Workstation locking, paper shredding, and zero plaintext password rules.', '[{"title": "Unattended Lockout", "content": "Lock workstation screen immediately upon leaving your desk. Max 5 minute timeout."}]'::jsonb),
+('66666666-6666-6666-6666-666666666602', 'Generative AI Code Assistant & IP Standards', 'Engineering SOP', '6 min read', 'Governing Copilot and LLM assistance in enterprise software development.', '[{"title": "Zero PII Ingestion", "content": "Never paste API keys or customer private data into public AI chats."}]'::jsonb);

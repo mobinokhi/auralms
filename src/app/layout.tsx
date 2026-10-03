@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
-import { Navbar } from '@/components/navigation/Navbar';
+import { AppShell } from '@/components/layout/AppShell';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'AuraLMS | Gomo Course Authoring × Litmos Enterprise Learning',
-  description: 'Enterprise LMS combining Gomo Learning visual responsive block authoring with SAP Litmos learning paths and compliance tracking.',
+  title: 'M.A.S LMS — Developed by M.A.S Cloud Studio',
+  description: 'Clean modern enterprise Learning Management System and corporate training intelligence platform.',
 };
 
 export default function RootLayout({
@@ -25,9 +25,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} dark antialiased`}>
-      <body className="min-h-screen bg-slate-950 text-slate-100 font-sans flex flex-col selection:bg-indigo-500/30 selection:text-indigo-200">
-        <Navbar />
-        <div className="flex-1 flex flex-col">{children}</div>
+      <body className="min-h-screen bg-[#0B0F17] text-slate-100 font-sans selection:bg-indigo-500/30 selection:text-indigo-200">
+        <AppShell>
+          {children}
+        </AppShell>
       </body>
     </html>
   );
