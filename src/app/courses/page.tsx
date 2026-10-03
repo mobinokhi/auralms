@@ -294,33 +294,43 @@ export default function CoursesPage() {
                       />
                     </div>
 
-                    <Link
-                      href={`/courses/${course.id}`}
-                      className={`w-full inline-flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-bold transition ${
-                        isCompleted
-                          ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
-                          : isInProgress
-                          ? 'bg-purple-50 text-[#7C3AED] hover:bg-[#7C3AED] hover:text-white border border-purple-200'
-                          : 'bg-[#1E293B] text-white hover:bg-slate-800'
-                      }`}
-                    >
-                      {isCompleted ? (
-                        <>
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          Review Course
-                        </>
-                      ) : isInProgress ? (
-                        <>
-                          <Play className="w-3.5 h-3.5 fill-current" />
-                          Resume Lesson
-                        </>
-                      ) : (
-                        <>
-                          Start Learning
-                          <ArrowRight className="w-3.5 h-3.5" />
-                        </>
-                      )}
-                    </Link>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Link
+                        href={`/courses/${course.id}`}
+                        className={`inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition ${
+                          isCompleted
+                            ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
+                            : isInProgress
+                            ? 'bg-purple-50 text-[#7C3AED] hover:bg-[#7C3AED] hover:text-white border border-purple-200'
+                            : 'bg-[#1E293B] text-white hover:bg-slate-800'
+                        }`}
+                      >
+                        {isCompleted ? (
+                          <>
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            Review
+                          </>
+                        ) : isInProgress ? (
+                          <>
+                            <Play className="w-3.5 h-3.5 fill-current" />
+                            Resume
+                          </>
+                        ) : (
+                          <>
+                            Start
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </>
+                        )}
+                      </Link>
+
+                      <Link
+                        href={`/courses/${course.id}?action=add_module`}
+                        className="inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold text-[#7C3AED] bg-purple-50 hover:bg-purple-100 border border-purple-200 transition"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        Add Module
+                      </Link>
+                    </div>
                   </div>
                 </div>
               </div>

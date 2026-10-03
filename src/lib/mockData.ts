@@ -8,6 +8,8 @@ import {
   User,
   Team,
   Course,
+  Lesson,
+  LessonType,
   ActivityItem,
   MessageThread,
   Guideline,
@@ -178,6 +180,41 @@ export const INITIAL_TEAMS: Team[] = [
 // 3. Initial 6 Pre-Built Courses with rich interactive lessons
 // ------------------------------------------------------------------------------
 export const INITIAL_COURSES: Course[] = [
+  {
+    id: 'crs-firebase',
+    title: 'Google Firebase Course',
+    category: 'Engineering',
+    description: 'Master Cloud Firestore, Firebase Authentication, Cloud Storage, and Security Rules for scalable cloud infrastructure.',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=800&auto=format&fit=crop',
+    durationHours: 2.0,
+    lessonCount: 2,
+    enrolledLearnersCount: 1,
+    progress: 0,
+    instructorName: 'Hasan Al Shahnoor',
+    level: 'Beginner',
+    updatedAt: 'Just now',
+    lessons: [
+      {
+        id: 'lsn-fb-1',
+        courseId: 'crs-firebase',
+        title: 'Module 1: Introduction to Google Firebase & Project Setup',
+        durationMinutes: 45,
+        type: 'reading',
+        completed: false,
+        contentMarkdown: `### 1. Introduction to Google Firebase Ecosystem\n\nGoogle Firebase provides managed backend infrastructure for modern enterprise web and mobile applications, eliminating boilerplate server provisioning.\n\n#### Key Firebase Core Services:\n- **Cloud Firestore:** Scalable, flexible NoSQL document database with realtime syncing.\n- **Firebase Authentication:** Turnkey multi-factor and social SSO identity.\n- **Cloud Functions:** Serverless compute that automatically triggers on database writes, auth events, or HTTP webhooks.\n- **Firebase Hosting & Storage:** Global CDN edge asset delivery.\n\n> **Core Rule:** Always configure separate Firebase environments for dev, staging, and production to isolate client data.`
+      },
+      {
+        id: 'lsn-fb-2',
+        courseId: 'crs-firebase',
+        title: 'Module 2: Cloud Firestore Database Architecture & Security Rules',
+        durationMinutes: 75,
+        type: 'video',
+        completed: false,
+        videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+        contentMarkdown: `### Cloud Firestore Security Rules\n\nSecurity rules evaluate request tokens against document properties to enforce least privilege access. Never leave rules in test mode in production.`
+      }
+    ]
+  },
   {
     id: 'crs-1',
     title: 'Enterprise Cybersecurity & Generative AI Hygiene',
@@ -898,7 +935,15 @@ export class MasDataStore {
       return INITIAL_COURSES;
     }
     try {
-      return JSON.parse(stored);
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed) && !parsed.some((c: Course) => c.title.toLowerCase().includes('firebase'))) {
+        const firebaseCourse = INITIAL_COURSES.find(c => c.title.toLowerCase().includes('firebase'));
+        if (firebaseCourse) {
+          parsed.unshift(firebaseCourse);
+          localStorage.setItem(STORAGE_PREFIX + 'courses', JSON.stringify(parsed));
+        }
+      }
+      return parsed;
     } catch {
       return INITIAL_COURSES;
     }
@@ -906,7 +951,7 @@ export class MasDataStore {
 
   public static getCourseById(id: string): Course | null {
     const courses = this.getCourses();
-    return courses.find(c => c.id === id) || courses[0] || null;
+    return courses.find(c => c.id === id || c.title.toLowerCase() === id.toLowerCase()) || courses[0] || null;
   }
 
   public static addCourse(course: Omit<Course, 'id' | 'lessonCount' | 'enrolledLearnersCount' | 'updatedAt' | 'progress'>): Course {
@@ -924,6 +969,112 @@ export class MasDataStore {
       localStorage.setItem(STORAGE_PREFIX + 'courses', JSON.stringify(updated));
     }
     return newCourse;
+  }
+
+  public static addModuleToCourse(
+    courseId: string,
+    moduleData: {
+      title: string;
+      type: LessonType;
+      durationMinutes: number;
+      contentMarkdown?: string;
+      videoUrl?: string;
+    }
+  ): { course: Course; lesson: Lesson } | null {
+    const courses = this.getCourses();
+    const courseIndex = courses.findIndex(c => c.id === courseId || c.title.toLowerCase() === courseId.toLowerCase());
+    if (courseIndex === -1) return null;
+
+    const course = courses[courseIndex];
+    const newLesson: Lesson = {
+      id: `lsn-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      courseId: course.id,
+      title: moduleData.title.trim(),
+      type: moduleData.type,
+      durationMinutes: Number(moduleData.durationMinutes) || 15,
+      completed: false,
+      contentMarkdown: moduleData.contentMarkdown || '',
+      videoUrl: moduleData.videoUrl || ''
+    };
+
+    const updatedLessons = [...course.lessons, newLesson];
+    const totalMinutes = updatedLessons.reduce((sum, l) => sum + (l.durationMinutes || 0), 0);
+    const updatedCourse: Course = {
+      ...course,
+      lessons: updatedLessons,
+      lessonCount: updatedLessons.length,
+      durationHours: Math.max(0.5, Math.round((totalMinutes / 60) * 10) / 10),
+      updatedAt: 'Just now'
+    };
+
+    courses[courseIndex] = updatedCourse;
+    if (this.isClient()) {
+      localStorage.setItem(STORAGE_PREFIX + 'courses', JSON.stringify(courses));
+    }
+
+    return { course: updatedCourse, lesson: newLesson };
+  }
+
+  public static updateModuleInCourse(
+    courseId: string,
+    lessonId: string,
+    updates: Partial<Lesson>
+  ): Course | null {
+    const courses = this.getCourses();
+    const courseIndex = courses.findIndex(c => c.id === courseId || c.title.toLowerCase() === courseId.toLowerCase());
+    if (courseIndex === -1) return null;
+
+    const course = courses[courseIndex];
+    const updatedLessons = course.lessons.map(l => {
+      if (l.id === lessonId) {
+        return { ...l, ...updates };
+      }
+      return l;
+    });
+
+    const totalMinutes = updatedLessons.reduce((sum, l) => sum + (l.durationMinutes || 0), 0);
+    const updatedCourse: Course = {
+      ...course,
+      lessons: updatedLessons,
+      lessonCount: updatedLessons.length,
+      durationHours: Math.max(0.5, Math.round((totalMinutes / 60) * 10) / 10),
+      updatedAt: 'Just now'
+    };
+
+    courses[courseIndex] = updatedCourse;
+    if (this.isClient()) {
+      localStorage.setItem(STORAGE_PREFIX + 'courses', JSON.stringify(courses));
+    }
+
+    return updatedCourse;
+  }
+
+  public static deleteModuleFromCourse(courseId: string, lessonId: string): Course | null {
+    const courses = this.getCourses();
+    const courseIndex = courses.findIndex(c => c.id === courseId || c.title.toLowerCase() === courseId.toLowerCase());
+    if (courseIndex === -1) return null;
+
+    const course = courses[courseIndex];
+    const updatedLessons = course.lessons.filter(l => l.id !== lessonId);
+    const totalMinutes = updatedLessons.reduce((sum, l) => sum + (l.durationMinutes || 0), 0);
+    const completedCount = updatedLessons.filter(l => l.completed).length;
+    const newProgress = updatedLessons.length > 0 ? Math.round((completedCount / updatedLessons.length) * 100) : 0;
+
+    const updatedCourse: Course = {
+      ...course,
+      lessons: updatedLessons,
+      lessonCount: updatedLessons.length,
+      durationHours: Math.max(0.5, Math.round((totalMinutes / 60) * 10) / 10),
+      progress: newProgress,
+      updatedAt: 'Just now'
+    };
+
+    courses[courseIndex] = updatedCourse;
+    if (this.isClient()) {
+      localStorage.setItem(STORAGE_PREFIX + 'courses', JSON.stringify(courses));
+    }
+
+    return updatedCourse;
   }
 
   public static toggleLessonComplete(courseId: string, lessonId: string): Course | null {
