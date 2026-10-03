@@ -19,8 +19,6 @@ import {
   X,
   Search,
   Bell,
-  Sparkles,
-  ShieldCheck,
   CheckCircle2
 } from 'lucide-react';
 
@@ -65,15 +63,15 @@ export function AppShell({ children }: AppShellProps) {
     : { name: 'Elena Rostova', email: 'elena.rostova@mascloud.studio', avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=250&auto=format&fit=crop' };
 
   return (
-    <div className="min-h-screen bg-[#0B0F17] text-slate-100 flex flex-col md:flex-row font-sans selection:bg-indigo-500/30 selection:text-indigo-200">
+    <div className="min-h-screen bg-[#F8FAFC] text-[#1E293B] flex flex-col md:flex-row font-sans selection:bg-purple-100 selection:text-purple-900">
       {/* ---------------------------------------------------------------------- */}
-      {/* Desktop Persistent Left-Hand Sidebar                                   */}
+      {/* Desktop Persistent Left-Hand Sidebar (Clean Light Theme)              */}
       {/* ---------------------------------------------------------------------- */}
-      <aside className="hidden md:flex flex-col w-64 border-r border-slate-800/80 bg-[#0E131F]/90 backdrop-blur-md flex-shrink-0 select-none z-30">
+      <aside className="hidden md:flex flex-col w-64 border-r border-[#E2E8F0] bg-[#FFFFFF] shadow-sm flex-shrink-0 select-none z-30">
         {/* Brand Header */}
-        <div className="p-5 border-b border-slate-800/80">
+        <div className="p-5 border-b border-[#E2E8F0]">
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="h-10 w-10 rounded-xl overflow-hidden bg-white p-1 flex items-center justify-center shadow-lg shadow-indigo-500/10 border border-slate-700/60 group-hover:scale-105 transition-transform flex-shrink-0">
+            <div className="h-10 w-10 rounded-xl overflow-hidden bg-white p-1 flex items-center justify-center shadow-xs border border-[#E2E8F0] group-hover:scale-105 transition-transform flex-shrink-0">
               <img
                 src="/mas-lms-logo.jpg"
                 alt="M.A.S LMS"
@@ -81,13 +79,13 @@ export function AppShell({ children }: AppShellProps) {
               />
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="text-base font-extrabold text-white tracking-tight leading-tight flex items-center gap-1.5">
+              <span className="text-base font-extrabold text-[#1E293B] tracking-tight leading-tight flex items-center gap-1.5">
                 M.A.S LMS
-                <span className="text-[10px] font-semibold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-1 rounded">
+                <span className="text-[10px] font-semibold text-[#7C3AED] bg-purple-50 border border-purple-200 px-1 rounded">
                   v1.0
                 </span>
               </span>
-              <span className="text-[11px] text-slate-400 truncate">
+              <span className="text-[11px] text-[#64748B] truncate">
                 by M.A.S Cloud Studio
               </span>
             </div>
@@ -95,37 +93,37 @@ export function AppShell({ children }: AppShellProps) {
 
           {/* Quick Role Switcher (Client Demo Dropdown) */}
           <div className="mt-4 relative">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 px-1">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-[#64748B] mb-1 px-1">
               Active Demo Persona
             </div>
             <button
               onClick={() => setRoleDropdownOpen(!roleDropdownOpen)}
-              className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-slate-900/90 border border-slate-800 hover:border-slate-700 text-xs font-semibold text-slate-200 transition-all shadow-xs"
+              className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] hover:border-slate-300 text-xs font-semibold text-[#1E293B] transition-all shadow-2xs"
             >
               <div className="flex items-center gap-2">
                 <span className={`h-2 w-2 rounded-full ${
-                  activeRole === 'Admin' ? 'bg-indigo-400 shadow-xs shadow-indigo-400' :
-                  activeRole === 'Instructor' ? 'bg-purple-400' : 'bg-emerald-400'
+                  activeRole === 'Admin' ? 'bg-[#7C3AED] shadow-xs' :
+                  activeRole === 'Instructor' ? 'bg-indigo-600' : 'bg-emerald-600'
                 }`} />
                 <span className="capitalize">{activeRole} View</span>
               </div>
-              <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+              <ChevronDown className="h-3.5 w-3.5 text-[#64748B]" />
             </button>
 
             {roleDropdownOpen && (
-              <div className="absolute left-0 right-0 top-full mt-1.5 z-50 rounded-xl bg-slate-900 border border-slate-700 p-1 shadow-2xl animate-in fade-in zoom-in-95 duration-100">
+              <div className="absolute left-0 right-0 top-full mt-1.5 z-50 rounded-xl bg-white border border-[#E2E8F0] p-1 shadow-lg animate-in fade-in zoom-in-95 duration-100">
                 {(['Admin', 'Instructor', 'Learner'] as UserRole[]).map((role) => (
                   <button
                     key={role}
                     onClick={() => handleRoleChange(role)}
                     className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
                       activeRole === role
-                        ? 'bg-indigo-600/20 text-indigo-300 font-semibold'
-                        : 'text-slate-300 hover:bg-slate-800'
+                        ? 'bg-purple-50 text-[#7C3AED] font-semibold'
+                        : 'text-[#1E293B] hover:bg-[#F8FAFC]'
                     }`}
                   >
                     <span>{role}</span>
-                    {activeRole === role && <CheckCircle2 className="h-3.5 w-3.5 text-indigo-400" />}
+                    {activeRole === role && <CheckCircle2 className="h-3.5 w-3.5 text-[#7C3AED]" />}
                   </button>
                 ))}
               </div>
@@ -147,16 +145,20 @@ export function AppShell({ children }: AppShellProps) {
                 href={link.href}
                 className={`flex items-center justify-between px-3.5 py-2.5 rounded-lg text-xs font-medium transition-all ${
                   isActive
-                    ? 'bg-indigo-600/15 text-indigo-300 font-semibold border border-indigo-500/30 shadow-xs'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                    ? 'bg-[#E9D5FF] text-[#7C3AED] font-bold shadow-2xs'
+                    : 'text-[#64748B] hover:text-[#1E293B] hover:bg-[#F1F5F9]'
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <Icon className={`h-4 w-4 ${isActive ? 'text-indigo-400' : 'text-slate-400'}`} />
+                  <Icon className={`h-4 w-4 ${isActive ? 'text-[#7C3AED]' : 'text-[#64748B]'}`} />
                   <span>{link.label}</span>
                 </div>
                 {link.badge && (
-                  <span className="text-[10px] font-bold bg-indigo-500/20 text-indigo-300 px-1.5 py-0.2 rounded-full border border-indigo-500/30">
+                  <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full border ${
+                    isActive
+                      ? 'bg-purple-200 text-[#7C3AED] border-purple-300'
+                      : 'bg-slate-100 text-[#64748B] border-slate-200'
+                  }`}>
                     {link.badge}
                   </span>
                 )}
@@ -166,23 +168,23 @@ export function AppShell({ children }: AppShellProps) {
         </nav>
 
         {/* Footer Profile & Studio Watermark */}
-        <div className="p-4 border-t border-slate-800/80 bg-slate-950/40">
+        <div className="p-4 border-t border-[#E2E8F0] bg-[#F8FAFC]">
           <div className="flex items-center gap-3 mb-3">
             <img
               src={activeUser.avatar}
               alt={activeUser.name}
-              className="h-8 w-8 rounded-full object-cover ring-1 ring-slate-700"
+              className="h-8 w-8 rounded-full object-cover ring-1 ring-[#E2E8F0]"
             />
             <div className="flex flex-col min-w-0">
-              <span className="text-xs font-bold text-white truncate">{activeUser.name}</span>
-              <span className="text-[10px] text-slate-400 truncate">{activeUser.email}</span>
+              <span className="text-xs font-bold text-[#1E293B] truncate">{activeUser.name}</span>
+              <span className="text-[10px] text-[#64748B] truncate">{activeUser.email}</span>
             </div>
           </div>
 
-          <div className="pt-2 border-t border-slate-800/60 flex items-center justify-between text-[10px] text-slate-500 font-medium">
+          <div className="pt-2 border-t border-[#E2E8F0] flex items-center justify-between text-[10px] text-[#64748B] font-medium">
             <span>M.A.S Cloud Studio</span>
-            <span className="flex items-center gap-1 text-emerald-400 font-semibold">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="flex items-center gap-1 text-emerald-600 font-semibold">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
               Synced
             </span>
           </div>
@@ -192,24 +194,24 @@ export function AppShell({ children }: AppShellProps) {
       {/* ---------------------------------------------------------------------- */}
       {/* Mobile Top Navigation Bar                                              */}
       {/* ---------------------------------------------------------------------- */}
-      <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-slate-800 bg-[#0E131F] sticky top-0 z-40">
+      <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-[#E2E8F0] bg-white sticky top-0 z-40">
         <Link href="/" className="flex items-center gap-2.5">
-          <div className="h-8 w-8 rounded-lg overflow-hidden bg-white p-0.5 flex items-center justify-center border border-slate-700">
+          <div className="h-8 w-8 rounded-lg overflow-hidden bg-white p-0.5 flex items-center justify-center border border-[#E2E8F0]">
             <img src="/mas-lms-logo.jpg" alt="M.A.S LMS Logo" className="w-full h-full object-contain" />
           </div>
-          <span className="font-extrabold text-sm text-white">M.A.S LMS</span>
+          <span className="font-extrabold text-sm text-[#1E293B]">M.A.S LMS</span>
         </Link>
 
         <div className="flex items-center gap-2">
           <button
             onClick={() => setSearchModalOpen(true)}
-            className="p-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-400"
+            className="p-2 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] text-[#64748B]"
           >
             <Search className="h-4 w-4" />
           </button>
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-300"
+            className="p-2 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] text-[#1E293B]"
           >
             {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
@@ -218,10 +220,10 @@ export function AppShell({ children }: AppShellProps) {
 
       {/* Mobile Menu Overlay Drawer */}
       {mobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 top-[53px] z-50 bg-[#0B0F17]/95 p-4 flex flex-col backdrop-blur-lg">
-          <div className="mb-4 p-3 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-between">
-            <span className="text-xs text-slate-400">Current Role:</span>
-            <span className="text-xs font-bold text-indigo-400">{activeRole}</span>
+        <div className="md:hidden fixed inset-0 top-[53px] z-50 bg-white/95 p-4 flex flex-col backdrop-blur-lg">
+          <div className="mb-4 p-3 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] flex items-center justify-between">
+            <span className="text-xs text-[#64748B]">Current Role:</span>
+            <span className="text-xs font-bold text-[#7C3AED]">{activeRole}</span>
           </div>
 
           <nav className="space-y-1 flex-1 overflow-y-auto">
@@ -234,7 +236,7 @@ export function AppShell({ children }: AppShellProps) {
                   href={link.href}
                   onClick={() => setMobileMenuOpen(false)}
                   className={`flex items-center justify-between px-4 py-3 rounded-lg text-sm font-semibold ${
-                    isActive ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-900'
+                    isActive ? 'bg-[#E9D5FF] text-[#7C3AED]' : 'text-[#64748B] hover:bg-[#F8FAFC]'
                   }`}
                 >
                   <div className="flex items-center gap-3">
@@ -242,14 +244,14 @@ export function AppShell({ children }: AppShellProps) {
                     <span>{link.label}</span>
                   </div>
                   {link.badge && (
-                    <span className="text-[10px] bg-slate-800 px-2 py-0.5 rounded-full">{link.badge}</span>
+                    <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded-full text-[#64748B]">{link.badge}</span>
                   )}
                 </Link>
               );
             })}
           </nav>
 
-          <div className="pt-4 border-t border-slate-800 text-center text-xs text-slate-500">
+          <div className="pt-4 border-t border-[#E2E8F0] text-center text-xs text-[#64748B]">
             M.A.S LMS — Developed by M.A.S Cloud Studio
           </div>
         </div>
@@ -258,17 +260,17 @@ export function AppShell({ children }: AppShellProps) {
       {/* ---------------------------------------------------------------------- */}
       {/* Main Content Workspace                                                 */}
       {/* ---------------------------------------------------------------------- */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-[#F8FAFC]">
         {/* Top Minimalist Global Bar */}
-        <header className="hidden md:flex h-14 items-center justify-between px-8 border-b border-slate-800/80 bg-[#0E131F]/50 backdrop-blur-xs sticky top-0 z-20">
+        <header className="hidden md:flex h-14 items-center justify-between px-8 border-b border-[#E2E8F0] bg-white/80 backdrop-blur-md sticky top-0 z-20">
           {/* Quick Search Bar trigger */}
           <button
             onClick={() => setSearchModalOpen(true)}
-            className="flex items-center gap-3 w-80 px-3 py-1.5 rounded-lg bg-slate-900/80 border border-slate-800 text-xs text-slate-400 hover:border-slate-700 transition-colors shadow-2xs group text-left"
+            className="flex items-center gap-3 w-80 px-3 py-1.5 rounded-lg bg-[#F1F5F9] border border-[#E2E8F0] text-xs text-[#64748B] hover:border-slate-300 transition-colors shadow-2xs group text-left"
           >
-            <Search className="h-3.5 w-3.5 text-slate-500 group-hover:text-slate-300" />
+            <Search className="h-3.5 w-3.5 text-slate-400 group-hover:text-slate-600" />
             <span className="flex-1">Search courses, guidelines, learners...</span>
-            <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-[10px] text-slate-400 border border-slate-700">
+            <kbd className="px-1.5 py-0.5 rounded bg-white text-[10px] text-slate-500 border border-slate-200 shadow-2xs">
               ⌘K
             </kbd>
           </button>
@@ -277,18 +279,18 @@ export function AppShell({ children }: AppShellProps) {
           <div className="flex items-center gap-4">
             <Link
               href="/messages"
-              className="relative p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors"
+              className="relative p-2 rounded-lg text-[#64748B] hover:text-[#1E293B] hover:bg-[#F1F5F9] transition-colors"
               title="Notifications & Announcements"
             >
               <Bell className="h-4 w-4" />
-              <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-indigo-500 ring-2 ring-[#0B0F17]" />
+              <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-[#7C3AED] ring-2 ring-white" />
             </Link>
 
-            <div className="h-4 w-px bg-slate-800" />
+            <div className="h-4 w-px bg-[#E2E8F0]" />
 
             <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-slate-300">{activeUser.name}</span>
-              <span className="text-[10px] font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-1.5 py-0.5 rounded">
+              <span className="text-xs font-semibold text-[#1E293B]">{activeUser.name}</span>
+              <span className="text-[10px] font-bold text-[#7C3AED] bg-purple-50 border border-purple-200 px-1.5 py-0.5 rounded">
                 {activeRole}
               </span>
             </div>
@@ -305,25 +307,25 @@ export function AppShell({ children }: AppShellProps) {
       {/* Global Quick Search Modal (⌘K)                                         */}
       {/* ---------------------------------------------------------------------- */}
       {searchModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-start justify-center pt-20 p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl max-w-lg w-full p-4 animate-in fade-in zoom-in-95 duration-100">
-            <div className="flex items-center gap-3 pb-3 border-b border-slate-800">
-              <Search className="h-4 w-4 text-indigo-400" />
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-start justify-center pt-20 p-4">
+          <div className="bg-white border border-[#E2E8F0] rounded-2xl shadow-2xl max-w-lg w-full p-4 animate-in fade-in zoom-in-95 duration-100">
+            <div className="flex items-center gap-3 pb-3 border-b border-[#E2E8F0]">
+              <Search className="h-4 w-4 text-[#7C3AED]" />
               <input
                 type="text"
                 autoFocus
                 placeholder="Search across courses, teams, guidelines..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1 bg-transparent text-sm text-white placeholder-slate-500 focus:outline-none"
+                className="flex-1 bg-transparent text-sm text-[#1E293B] placeholder-slate-400 focus:outline-none"
               />
-              <button onClick={() => setSearchModalOpen(false)} className="text-slate-400 hover:text-white">
+              <button onClick={() => setSearchModalOpen(false)} className="text-slate-400 hover:text-slate-600">
                 <X className="h-4 w-4" />
               </button>
             </div>
 
             <div className="py-3 space-y-1">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-2 py-1">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-[#64748B] px-2 py-1">
                 Quick Navigation
               </div>
               {navLinks.map((item) => (
@@ -331,15 +333,15 @@ export function AppShell({ children }: AppShellProps) {
                   key={item.href}
                   href={item.href}
                   onClick={() => setSearchModalOpen(false)}
-                  className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+                  className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-[#1E293B] hover:bg-[#F8FAFC] transition-colors"
                 >
-                  <item.icon className="h-4 w-4 text-slate-400" />
+                  <item.icon className="h-4 w-4 text-[#64748B]" />
                   <span>Go to {item.label}</span>
                 </Link>
               ))}
             </div>
 
-            <div className="pt-3 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-500">
+            <div className="pt-3 border-t border-[#E2E8F0] flex items-center justify-between text-[11px] text-[#64748B]">
               <span>M.A.S LMS Search</span>
               <span>ESC to exit</span>
             </div>
