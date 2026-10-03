@@ -97,13 +97,37 @@ export const INITIAL_USERS: User[] = [
     avatarUrl: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?q=80&w=250&auto=format&fit=crop',
     status: 'Active',
     joinedDate: 'Sep 12, 2025'
+  },
+  {
+    id: 'usr-9',
+    name: 'Hasan Al Shahriar',
+    email: 'hasan@mascloud.studio',
+    role: 'Instructor',
+    team: 'Google Firebase Team',
+    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=250&auto=format&fit=crop',
+    status: 'Active',
+    joinedDate: 'Oct 01, 2026'
   }
 ];
 
 // ------------------------------------------------------------------------------
-// 2. Initial 3 Teams (Departments & Cohorts)
+// 2. Initial Teams (Departments & Cohorts)
 // ------------------------------------------------------------------------------
 export const INITIAL_TEAMS: Team[] = [
+  {
+    id: 'team-firebase',
+    name: 'Google Firebase Team',
+    leadName: 'Hasan Al Shahriar',
+    leadEmail: 'hasan@mascloud.studio',
+    leadAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=250&auto=format&fit=crop',
+    memberCount: 1,
+    description: 'Enterprise operational cohort.',
+    assignedTracks: [
+      'Security & Compliance',
+      'Technical Architecture'
+    ],
+    completionRate: 0
+  },
   {
     id: 'team-ops',
     name: 'Operations',
@@ -756,7 +780,7 @@ export class MasDataStore {
     }
   }
 
-  public static addUser(user: Omit<User, 'id' | 'joinedDate'>): User {
+  public static addUser(user: Omit<User, 'id' | 'joinedDate'>, skipTeamIncrement = false): User {
     const users = this.getUsers();
     const newUser: User = {
       ...user,
@@ -766,14 +790,32 @@ export class MasDataStore {
     const updated = [newUser, ...users];
     if (this.isClient()) {
       localStorage.setItem(STORAGE_PREFIX + 'users', JSON.stringify(updated));
+      if (!skipTeamIncrement && user.team) {
+        const teams = this.getTeams();
+        const tIdx = teams.findIndex(t => t.name.toLowerCase() === user.team.toLowerCase() || t.id === user.team);
+        if (tIdx !== -1) {
+          teams[tIdx].memberCount = (teams[tIdx].memberCount || 0) + 1;
+          localStorage.setItem(STORAGE_PREFIX + 'teams', JSON.stringify(teams));
+        }
+      }
     }
     return newUser;
   }
 
   public static removeUser(id: string): void {
-    const users = this.getUsers().filter(u => u.id !== id);
+    const users = this.getUsers();
+    const targetUser = users.find(u => u.id === id);
+    const updated = users.filter(u => u.id !== id);
     if (this.isClient()) {
-      localStorage.setItem(STORAGE_PREFIX + 'users', JSON.stringify(users));
+      localStorage.setItem(STORAGE_PREFIX + 'users', JSON.stringify(updated));
+      if (targetUser?.team) {
+        const teams = this.getTeams();
+        const tIdx = teams.findIndex(t => t.name.toLowerCase() === targetUser.team.toLowerCase() || t.id === targetUser.team);
+        if (tIdx !== -1 && teams[tIdx].memberCount > 0) {
+          teams[tIdx].memberCount -= 1;
+          localStorage.setItem(STORAGE_PREFIX + 'teams', JSON.stringify(teams));
+        }
+      }
     }
   }
 
@@ -790,7 +832,16 @@ export class MasDataStore {
       return INITIAL_TEAMS;
     }
     try {
-      return JSON.parse(stored);
+      const parsed = JSON.parse(stored);
+      // Ensure Google Firebase Team exists even if old localStorage was seeded with 3 teams
+      if (Array.isArray(parsed) && !parsed.some((t: Team) => t.name === 'Google Firebase Team')) {
+        const firebaseTeam = INITIAL_TEAMS.find(t => t.name === 'Google Firebase Team');
+        if (firebaseTeam) {
+          parsed.unshift(firebaseTeam);
+          localStorage.setItem(STORAGE_PREFIX + 'teams', JSON.stringify(parsed));
+        }
+      }
+      return parsed;
     } catch {
       return INITIAL_TEAMS;
     }
@@ -809,6 +860,33 @@ export class MasDataStore {
       localStorage.setItem(STORAGE_PREFIX + 'teams', JSON.stringify(updated));
     }
     return newTeam;
+  }
+
+  public static addMemberToTeam(teamId: string, member: { name: string; email: string; role: 'Admin' | 'Instructor' | 'Learner' }): { user: User; team: Team | null } {
+    const teams = this.getTeams();
+    const teamIndex = teams.findIndex(t => t.id === teamId || t.name.toLowerCase() === teamId.toLowerCase());
+    let targetTeamName = 'General';
+    let updatedTeam: Team | null = null;
+
+    if (teamIndex !== -1) {
+      teams[teamIndex].memberCount = (teams[teamIndex].memberCount || 0) + 1;
+      updatedTeam = teams[teamIndex];
+      targetTeamName = teams[teamIndex].name;
+      if (this.isClient()) {
+        localStorage.setItem(STORAGE_PREFIX + 'teams', JSON.stringify(teams));
+      }
+    }
+
+    const newUser = this.addUser({
+      name: member.name,
+      email: member.email,
+      role: member.role,
+      team: targetTeamName,
+      avatarUrl: `https://images.unsplash.com/photo-${1530000000000 + Math.floor(Math.random() * 100000000)}?q=80&w=250&auto=format&fit=crop`,
+      status: 'Active'
+    }, true);
+
+    return { user: newUser, team: updatedTeam };
   }
 
   // --- Courses ---

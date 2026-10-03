@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { 
   Users, 
   Search, 
@@ -10,14 +11,20 @@ import {
   Trash2, 
   X, 
   CheckCircle2, 
-  Clock
+  Clock,
+  Filter
 } from 'lucide-react';
-import { User, UserRole } from '@/types/masLms';
+import { User, UserRole, Team } from '@/types/masLms';
 import { MasDataStore } from '@/lib/mockData';
 
-export default function PeoplePage() {
+function PeopleDirectoryContent() {
+  const searchParams = useSearchParams();
+  const urlTeam = searchParams.get('team') || 'All';
+
   const [users, setUsers] = useState<User[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [teamFilter, setTeamFilter] = useState<string>(urlTeam);
   const [roleFilter, setRoleFilter] = useState<string>('All');
   const [statusFilter, setStatusFilter] = useState<string>('All');
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
@@ -32,18 +39,45 @@ export default function PeoplePage() {
   });
 
   useEffect(() => {
-    setUsers(MasDataStore.getUsers());
-  }, []);
+    const loadedUsers = MasDataStore.getUsers();
+    const loadedTeams = MasDataStore.getTeams();
+    setUsers(loadedUsers);
+    setTeams(loadedTeams);
+    if (loadedTeams.length > 0) {
+      setInviteForm(prev => ({
+        ...prev,
+        team: urlTeam !== 'All' ? urlTeam : loadedTeams[0].name
+      }));
+    }
+  }, [urlTeam]);
+
+  useEffect(() => {
+    if (urlTeam && urlTeam !== 'All') {
+      setTeamFilter(urlTeam);
+    }
+  }, [urlTeam]);
 
   const filteredUsers = users.filter(user => {
+    const matchesTeam = teamFilter === 'All' || user.team.toLowerCase() === teamFilter.toLowerCase();
     const matchesRole = roleFilter === 'All' || user.role === roleFilter;
     const matchesStatus = statusFilter === 'All' || user.status === statusFilter;
     const matchesSearch = 
       user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.team.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesRole && matchesStatus && matchesSearch;
+    return matchesTeam && matchesRole && matchesStatus && matchesSearch;
   });
+
+  const handleOpenInvite = (presetTeam?: string) => {
+    const defaultTeam = presetTeam || (teamFilter !== 'All' ? teamFilter : (teams[0]?.name || 'General'));
+    setInviteForm({
+      name: '',
+      email: '',
+      role: 'Learner',
+      team: defaultTeam
+    });
+    setIsInviteModalOpen(true);
+  };
 
   const handleInviteSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,24 +89,26 @@ export default function PeoplePage() {
       role: inviteForm.role,
       team: inviteForm.team,
       avatarUrl: `https://images.unsplash.com/photo-${1530000000000 + Math.floor(Math.random() * 100000000)}?q=80&w=250&auto=format&fit=crop`,
-      status: 'Invited'
+      status: 'Active'
     });
 
-    setUsers(prev => [newUser, ...prev]);
+    setUsers(MasDataStore.getUsers());
+    setTeams(MasDataStore.getTeams());
     setIsInviteModalOpen(false);
     setInviteForm({
       name: '',
       email: '',
       role: 'Learner',
-      team: 'Operations'
+      team: teams[0]?.name || 'Operations'
     });
-    showToast(`Invitation sent to ${newUser.email}`);
+    showToast(`Added ${newUser.name} to ${inviteForm.team}!`);
   };
 
   const handleDeleteUser = (userId: string, name: string) => {
     if (confirm(`Are you sure you want to remove ${name} from M.A.S LMS?`)) {
       MasDataStore.removeUser(userId);
-      setUsers(prev => prev.filter(u => u.id !== userId));
+      setUsers(MasDataStore.getUsers());
+      setTeams(MasDataStore.getTeams());
       showToast(`${name} removed from organization.`);
     }
   };
@@ -112,13 +148,15 @@ export default function PeoplePage() {
           </p>
         </div>
 
-        <button
-          onClick={() => setIsInviteModalOpen(true)}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#7C3AED] hover:bg-[#6D28D9] transition shadow-xs active:scale-[0.98]"
-        >
-          <UserPlus className="w-4 h-4" />
-          Invite Member
-        </button>
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={() => handleOpenInvite()}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#7C3AED] hover:bg-[#6D28D9] transition shadow-xs active:scale-[0.98]"
+          >
+            <UserPlus className="w-4 h-4" />
+            {teamFilter !== 'All' ? `Add Member to ${teamFilter}` : 'Add / Invite Member'}
+          </button>
+        </div>
       </div>
 
       {/* Directory Metrics Strip */}
@@ -140,9 +178,9 @@ export default function PeoplePage() {
           </p>
         </div>
         <div className="p-4 rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <p className="text-xs font-semibold text-[#64748B]">Pending Invites</p>
-          <p className="text-2xl font-extrabold text-amber-500 mt-1">
-            {users.filter(u => u.status === 'Invited').length}
+          <p className="text-xs font-semibold text-[#64748B]">Configured Teams</p>
+          <p className="text-2xl font-extrabold text-[#7C3AED] mt-1">
+            {teams.length}
           </p>
         </div>
       </div>
@@ -169,6 +207,18 @@ export default function PeoplePage() {
         </div>
 
         <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
+          {/* Team Filter Dropdown */}
+          <select
+            value={teamFilter}
+            onChange={e => setTeamFilter(e.target.value)}
+            className="text-xs font-medium rounded-lg border border-slate-200 bg-white text-[#1E293B] py-2 px-3 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-[#7C3AED]"
+          >
+            <option value="All">All Teams ({teams.length})</option>
+            {teams.map(t => (
+              <option key={t.id} value={t.name}>{t.name}</option>
+            ))}
+          </select>
+
           <select
             value={roleFilter}
             onChange={e => setRoleFilter(e.target.value)}
@@ -192,6 +242,23 @@ export default function PeoplePage() {
         </div>
       </div>
 
+      {/* Active Team Filter Banner */}
+      {teamFilter !== 'All' && (
+        <div className="flex items-center justify-between p-3 rounded-xl bg-purple-50/70 border border-purple-200 text-xs text-[#7C3AED]">
+          <div className="flex items-center gap-2">
+            <Building2 className="w-4 h-4" />
+            <span>Showing members for <strong>{teamFilter}</strong> ({filteredUsers.length} found)</span>
+          </div>
+          <button
+            onClick={() => setTeamFilter('All')}
+            className="text-xs font-bold hover:underline inline-flex items-center gap-1"
+          >
+            <X className="w-3.5 h-3.5" />
+            Show All Teams
+          </button>
+        </div>
+      )}
+
       {/* Directory Table */}
       <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
@@ -210,7 +277,16 @@ export default function PeoplePage() {
               {filteredUsers.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-12 text-center text-[#64748B]">
-                    No directory members match your filter criteria.
+                    <div className="max-w-xs mx-auto space-y-3">
+                      <p>No members currently in {teamFilter !== 'All' ? `team "${teamFilter}"` : 'this directory view'}.</p>
+                      <button
+                        onClick={() => handleOpenInvite(teamFilter !== 'All' ? teamFilter : undefined)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#7C3AED] hover:bg-[#6D28D9] transition"
+                      >
+                        <UserPlus className="w-3.5 h-3.5" />
+                        Add Member Now
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ) : (
@@ -247,7 +323,7 @@ export default function PeoplePage() {
 
                       <td className="py-3.5 px-4">
                         <div className="inline-flex items-center gap-1.5 text-xs text-[#1E293B] font-semibold">
-                          <Building2 className="w-3.5 h-3.5 text-slate-400" />
+                          <Building2 className="w-3.5 h-3.5 text-[#7C3AED]" />
                           {user.team}
                         </div>
                       </td>
@@ -288,17 +364,17 @@ export default function PeoplePage() {
         </div>
       </div>
 
-      {/* Invite Member Modal */}
+      {/* Add / Invite Member Modal */}
       {isInviteModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl max-w-md w-full border border-slate-200 shadow-2xl overflow-hidden">
             <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
               <div>
                 <h3 className="text-base font-bold text-[#1E293B]">
-                  Invite Organization Member
+                  Add Member to Team
                 </h3>
                 <p className="text-xs text-[#64748B] mt-0.5">
-                  Send an email invitation with access credentials to M.A.S LMS.
+                  Register a teammate and assign them to a training cohort.
                 </p>
               </div>
               <button
@@ -331,7 +407,7 @@ export default function PeoplePage() {
                 <input
                   type="email"
                   required
-                  placeholder="jordan.hayes@company.com"
+                  placeholder="jordan.hayes@mascloud.studio"
                   value={inviteForm.email}
                   onChange={e => setInviteForm({ ...inviteForm, email: e.target.value })}
                   className="w-full px-3.5 py-2 text-sm rounded-lg border border-slate-200 bg-white text-[#1E293B] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-[#7C3AED]"
@@ -356,16 +432,16 @@ export default function PeoplePage() {
 
                 <div>
                   <label className="block text-xs font-semibold text-[#1E293B] mb-1.5">
-                    Assigned Team
+                    Assigned Team *
                   </label>
                   <select
                     value={inviteForm.team}
                     onChange={e => setInviteForm({ ...inviteForm, team: e.target.value })}
                     className="w-full px-3 py-2 text-xs font-medium rounded-lg border border-slate-200 bg-white text-[#1E293B] focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-[#7C3AED]"
                   >
-                    <option value="Operations">Operations</option>
-                    <option value="Finance & Advisory">Finance & Advisory</option>
-                    <option value="IT Support">IT Support</option>
+                    {teams.map(t => (
+                      <option key={t.id} value={t.name}>{t.name}</option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -382,7 +458,7 @@ export default function PeoplePage() {
                   type="submit"
                   className="px-4 py-2 rounded-lg text-xs font-semibold text-white bg-[#7C3AED] hover:bg-[#6D28D9] transition shadow-xs"
                 >
-                  Send Invitation
+                  Add Team Member
                 </button>
               </div>
             </form>
@@ -398,5 +474,17 @@ export default function PeoplePage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function PeoplePage() {
+  return (
+    <Suspense fallback={
+      <div className="p-8 text-center text-xs text-[#64748B]">
+        Loading directory...
+      </div>
+    }>
+      <PeopleDirectoryContent />
+    </Suspense>
   );
 }
