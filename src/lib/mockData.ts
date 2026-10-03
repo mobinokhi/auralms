@@ -1274,6 +1274,40 @@ export class MasDataStore {
     return updatedCourse;
   }
 
+  public static updateResourceInModule(
+    courseId: string,
+    lessonId: string,
+    resource: ModuleResource
+  ): Course | null {
+    const courses = this.getCourses();
+    const courseIndex = courses.findIndex(c => c.id === courseId || c.title.toLowerCase() === courseId.toLowerCase());
+    if (courseIndex === -1) return null;
+
+    const course = courses[courseIndex];
+    const updatedLessons = course.lessons.map(l => {
+      if (l.id === lessonId) {
+        return {
+          ...l,
+          resources: (l.resources || []).map(r => r.id === resource.id ? resource : r)
+        };
+      }
+      return l;
+    });
+
+    const updatedCourse: Course = {
+      ...course,
+      lessons: updatedLessons,
+      updatedAt: 'Just now'
+    };
+
+    courses[courseIndex] = updatedCourse;
+    if (this.isClient()) {
+      localStorage.setItem(STORAGE_PREFIX + 'courses', JSON.stringify(courses));
+    }
+
+    return updatedCourse;
+  }
+
   public static updateModuleInCourse(
     courseId: string,
     lessonId: string,

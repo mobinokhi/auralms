@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { Course, Lesson, LessonType, ModuleResource, SlideItem, ResourceType } from '@/types/masLms';
 import { MasDataStore } from '@/lib/mockData';
+import { parsePptx } from '@/lib/pptxParser';
 
 function getEmbedUrl(url?: string): string | null {
   if (!url || !url.trim()) return null;
@@ -425,6 +426,39 @@ function CoursePlayerInner() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [viewingPptResource, course, activeLessonId]);
 
+  // Auto-parse genuine PPTX slides for any attached PPT resource that hasn't been parsed yet
+  useEffect(() => {
+    if (!course || !activeLessonId) return;
+    const lesson = course.lessons.find(l => l.id === activeLessonId);
+    if (!lesson) return;
+
+    const ppts = (lesson.resources || []).filter(r => r.type === 'ppt' && r.url && r.url.startsWith('data:'));
+
+    ppts.forEach(ppt => {
+      const isPlaceholder = !ppt.slides || 
+        ppt.slides.length === 0 || 
+        ppt.slides[0]?.id?.startsWith('ppt-res-') ||
+        ppt.slides[0]?.id?.startsWith('ppt-temp') ||
+        ppt.slides[0]?.id?.startsWith('ppt-gen-');
+
+      if (isPlaceholder) {
+        parsePptx(ppt.url).then(parsed => {
+          if (parsed && parsed.length > 0) {
+            const updatedResource: ModuleResource = {
+              ...ppt,
+              slides: parsed
+            };
+            const updatedCourse = MasDataStore.updateResourceInModule(course.id, lesson.id, updatedResource);
+            if (updatedCourse) {
+              setCourse({ ...updatedCourse });
+              showToast(`Extracted ${parsed.length} genuine slides from "${ppt.name}"!`);
+            }
+          }
+        });
+      }
+    });
+  }, [course?.id, activeLessonId]);
+
   if (!course) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center text-center p-6 bg-[#F8FAFC]">
@@ -603,11 +637,23 @@ function CoursePlayerInner() {
         : `${Math.round(file.size / 1024)} KB`;
 
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         const fileUrl = (e.target?.result as string) || '#';
         let initialSlides: SlideItem[] | undefined = undefined;
+
         if (resType === 'ppt') {
-          initialSlides = getPptSlides({ id: `res-temp`, name: file.name, type: 'ppt', size: sizeStr, url: fileUrl }, activeLesson?.title);
+          try {
+            const parsed = await parsePptx(file);
+            if (parsed && parsed.length > 0) {
+              initialSlides = parsed;
+            }
+          } catch (err) {
+            console.warn('PPTX parsing error:', err);
+          }
+
+          if (!initialSlides || initialSlides.length === 0) {
+            initialSlides = getPptSlides({ id: `res-temp`, name: file.name, type: 'ppt', size: sizeStr, url: fileUrl }, activeLesson?.title);
+          }
         }
 
         const newResource: ModuleResource = {
@@ -630,7 +676,8 @@ function CoursePlayerInner() {
           if (updated) {
             setCourse({ ...updated });
             if (resType === 'ppt') {
-              showToast(`Uploaded PowerPoint deck "${file.name}"! Click "View PPT Slides" to read it now.`);
+              const count = initialSlides?.length || 0;
+              showToast(`Uploaded "${file.name}" with ${count} genuine presentation slides!`);
             } else if (resType === 'image') {
               showToast(`Uploaded image "${file.name}"! Preview is ready in Resources.`);
             } else {
